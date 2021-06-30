@@ -1098,6 +1098,12 @@ def unpack_var(
                 ctx.rel, view_path_id, rvar, aspect=aspect, env=ctx.env
             )
 
+    # # Every time I removed this debug spew I ended up needing it again.
+    # # I'll probably remember to remove it before putting up the PR.
+    # print("UNPACK_RVAR", path_id, ref, [el.path_id for el in els])
+    # rvar.dump_sql()
+    # breakpoint()
+
     return rvar
 
 
