@@ -542,6 +542,7 @@ def declare_view(
     must_be_used: bool=False,
     binding_kind: irast.BindingKind,
     path_id_namespace: Optional[FrozenSet[str]]=None,
+    new_namespace: bool=True,
     ctx: context.ContextLevel,
 ) -> irast.Set:
 
@@ -554,11 +555,12 @@ def declare_view(
 
         if not fully_detached:
             cached_view_set = ctx.expr_view_cache.get((expr, alias))
-            # Detach the view namespace and record the prefix
-            # in the parent statement's fence node.
-            view_path_id_ns = ctx.aliases.get('ns')
-            subctx.path_id_namespace |= {view_path_id_ns}
-            ctx.path_scope.add_namespaces({view_path_id_ns})
+            if new_namespace:
+                # Detach the view namespace and record the prefix
+                # in the parent statement's fence node.
+                view_path_id_ns = ctx.aliases.get('ns')
+                subctx.path_id_namespace |= {view_path_id_ns}
+                ctx.path_scope.add_namespaces({view_path_id_ns})
         else:
             cached_view_set = None
 
