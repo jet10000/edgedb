@@ -736,7 +736,7 @@ def maybe_get_scope_stmt(
 
 def set_to_array(
         path_id: irast.PathId, query: pgast.Query, *,
-        materializing: bool=False,
+        for_group_by: bool=False,
         ctx: context.CompilerContextLevel) -> pgast.Query:
     """Collapse a set into an array."""
     subrvar = pgast.RangeSubselect(
@@ -776,6 +776,13 @@ def set_to_array(
         # encase each element into a record.
         val = pgast.RowExpr(args=[val], ser_safe=val.ser_safe)
         pg_type = ('record',)
+
+    if for_group_by:
+        # When doing this as part of a GROUP, the stuff being aggregated
+        # needs to actually appear *inside* of the aggregate call...
+        result.target_list = [pgast.ResTarget(val=val, ser_safe=val.ser_safe)]
+        val = result
+        result = pgast.SelectStmt()
 
     array_agg = pgast.FuncCall(
         name=('array_agg',),
