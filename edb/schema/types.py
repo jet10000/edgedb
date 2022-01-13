@@ -71,7 +71,7 @@ class ExprType(enum.IntEnum):
         return self == ExprType.Insert
 
     def is_mutation(self) -> bool:
-        return self != ExprType.Select
+        return self != ExprType.Select and self != ExprType.Group
 
 
 TypeT = typing.TypeVar('TypeT', bound='Type')

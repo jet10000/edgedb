@@ -1282,9 +1282,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
             ]
         )
 
-    @test.xfail('still broken - cannot create root rvar for non-object path')
     async def test_edgeql_igroup_scalar_01b(self):
-        # huh.
         await self.assert_query_result(
             r"""
                 WITH

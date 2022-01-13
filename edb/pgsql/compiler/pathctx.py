@@ -1174,6 +1174,19 @@ def _get_path_output(
                 optional = ref.optional
                 is_packed_multi = ref.is_packed_multi
 
+            # XXX: group by will register a *subquery* as a path var
+            # for a packed group, and if we want to avoid losing
+            # track of whether is is multi, we need to figure that out.
+            # This is a pretty hokey way of handling this, though!
+            if (
+                isinstance(ref, pgast.SelectStmt)
+                and flavor == 'packed'
+                and ref.packed_path_outputs
+                and (path_id, aspect) in ref.packed_path_outputs
+            ):
+                is_packed_multi = ref.packed_path_outputs[
+                    path_id, aspect].is_packed_multi
+
             if nullable and not allow_nullable:
                 assert isinstance(rel, pgast.SelectStmt), \
                     "expected SelectStmt"

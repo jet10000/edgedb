@@ -1255,7 +1255,6 @@ def compile_query_subject(
         (
             (
                 ctx.expr_exposed >= context.Exposure.BINDING
-                and expr_stype.is_object_type()
                 and allow_select_shape_inject
 
                 and not forward_rptr
@@ -1278,6 +1277,7 @@ def compile_query_subject(
             or exprtype.is_mutation()
             or exprtype == s_types.ExprType.Group
         )
+        and expr_stype.is_object_type()
         and shape is None
     ):
         # Force the subject to be compiled as a view in these cases:
