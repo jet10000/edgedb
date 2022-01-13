@@ -303,7 +303,7 @@ def _fixup_materialized_sets(
                 elif isinstance(x, irast.MaterializeVisible):
                     # If any of the bindings that the set uses are
                     # *visible* at the definition point and *not
-                    # visible* from all use points, we need to
+                    # visible* from at least one use point, we need to
                     # materialize, to make sure that the use site sees
                     # the same value for the binding as the definition
                     # point. If it's not visible, then it's just being
@@ -365,7 +365,7 @@ def _try_namespace_fix(
     if obj.path_id is None:
         return
     for prefix in obj.path_id.iter_prefixes():
-        replacement = scope.find_visible(prefix)
+        replacement = scope.find_visible(prefix, allow_group=True)
         if (
             replacement and replacement.path_id
             and replacement.path_id.namespace != obj.path_id.namespace

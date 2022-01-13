@@ -254,7 +254,9 @@ def _make_group_binding(
     ctx.aliased_views[name] = binding_type
     ctx.view_sets[binding_type] = binding_set
     ctx.path_scope_map[binding_set] = context.ScopeInfo(
-        path_scope=ctx.path_scope, binding_kind=irast.BindingKind.For
+        path_scope=ctx.path_scope,
+        binding_kind=irast.BindingKind.For,
+        pinned_path_id_ns=ctx.path_id_namespace,
     )
 
     return binding_set
@@ -294,7 +296,8 @@ def compile_InternalGroupQuery(
                 binding = stmtctx.declare_view(
                     using_entry.expr,
                     s_name.UnqualName(using_entry.alias),
-                    binding_kind=irast.BindingKind.With,
+                    binding_kind=irast.BindingKind.With,  # XXX? is it?
+                    path_id_namespace=scopectx.path_id_namespace,
                     # XXX: I don't like doing this
                     new_namespace=False,
                     # must_be_used=True,  # XXX?
