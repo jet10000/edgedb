@@ -19,6 +19,7 @@
 import os.path
 
 from edb.testbase import server as tb
+from edb.tools import test
 
 
 class TestEdgeQLGroup(tb.QueryTestCase):
@@ -121,6 +122,14 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             ])
         )
 
+    @test.xfail('We are inserting "id" into the part that gets output?')
+    async def test_edgeql_group_simple_no_id_output_01(self):
+        # the implicitly injected id was making it into the output
+        # in native mode?
+        res = await self.con.query('GROUP cards::Card {name} BY .element')
+        el = tuple(tuple(res)[0].elements)[0]
+        self.assertNotIn("id := ", str(el))
+
     async def test_edgeql_group_process_select_01(self):
         await self.assert_query_result(
             r'''
@@ -203,4 +212,123 @@ class TestEdgeQLGroup(tb.QueryTestCase):
                 {"cnt": 2, "element": "Earth"},
                 {"cnt": 3, "element": "Air"}
             ])
+        )
+
+    async def test_edgeql_group_sets_01(self):
+        await self.assert_query_result(
+            r'''
+            WITH MODULE cards
+            GROUP Card {name}
+            USING nowners := count(.owners)
+            BY {.element, nowners};
+            ''',
+            tb.bag([
+                {
+                    "elements": [
+                        {"name": "Bog monster"}, {"name": "Giant turtle"}],
+                    "grouping": ["element"],
+                    "key": {"element": "Water", "nowners": None}
+                },
+                {
+                    "elements": [{"name": "Dragon"}, {"name": "Imp"}],
+                    "grouping": ["element"],
+                    "key": {"element": "Fire", "nowners": None}
+                },
+                {
+                    "elements": [{"name": "Dwarf"}, {"name": "Golem"}],
+                    "grouping": ["element"],
+                    "key": {"element": "Earth", "nowners": None}
+                },
+                {
+                    "elements": [
+                        {"name": "Djinn"},
+                        {"name": "Giant eagle"},
+                        {"name": "Sprite"},
+                    ],
+                    "grouping": ["element"],
+                    "key": {"element": "Air", "nowners": None}
+                },
+                {
+                    "elements": [{"name": "Golem"}],
+                    "grouping": ["nowners"],
+                    "key": {"element": None, "nowners": 3}
+                },
+                {
+                    "elements": [
+                        {"name": "Bog monster"}, {"name": "Giant turtle"}],
+                    "grouping": ["nowners"],
+                    "key": {"element": None, "nowners": 4}
+                },
+                {
+                    "elements": [
+                        {"name": "Djinn"},
+                        {"name": "Dragon"},
+                        {"name": "Dwarf"},
+                        {"name": "Giant eagle"},
+                        {"name": "Sprite"},
+                    ],
+                    "grouping": ["nowners"],
+                    "key": {"element": None, "nowners": 2}
+                },
+                {
+                    "elements": [{"name": "Imp"}],
+                    "grouping": ["nowners"],
+                    "key": {"element": None, "nowners": 1}
+                }
+            ]),
+            sort={'elements': lambda x: x['name']},
+        )
+
+    async def test_edgeql_group_sets_02(self):
+        # XXX: this breaks when
+
+        await self.assert_query_result(
+            r'''
+            WITH MODULE cards
+            GROUP Card
+            USING nowners := count(.owners)
+            BY {.element, nowners};
+            ''',
+            tb.bag([
+                {
+                    "elements": [{"id": str}] * 2,
+                    "grouping": ["element"],
+                    "key": {"element": "Water", "nowners": None}
+                },
+                {
+                    "elements": [{"id": str}] * 2,
+                    "grouping": ["element"],
+                    "key": {"element": "Fire", "nowners": None}
+                },
+                {
+                    "elements": [{"id": str}] * 2,
+                    "grouping": ["element"],
+                    "key": {"element": "Earth", "nowners": None}
+                },
+                {
+                    "elements": [{"id": str}] * 3,
+                    "grouping": ["element"],
+                    "key": {"element": "Air", "nowners": None}
+                },
+                {
+                    "elements": [{"id": str}] * 1,
+                    "grouping": ["nowners"],
+                    "key": {"element": None, "nowners": 3}
+                },
+                {
+                    "elements": [{"id": str}] * 2,
+                    "grouping": ["nowners"],
+                    "key": {"element": None, "nowners": 4}
+                },
+                {
+                    "elements": [{"id": str}] * 5,
+                    "grouping": ["nowners"],
+                    "key": {"element": None, "nowners": 2}
+                },
+                {
+                    "elements": [{"id": str}] * 1,
+                    "grouping": ["nowners"],
+                    "key": {"element": None, "nowners": 1}
+                }
+            ]),
         )

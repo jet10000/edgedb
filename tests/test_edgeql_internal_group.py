@@ -146,6 +146,68 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
             [1, 1, 1],
         )
 
+    async def test_edgeql_igroup_simple_09(self):
+        await self.assert_query_result(
+            r'''
+            WITH MODULE cards
+            DETACHED GROUP Card { name }
+            USING element := .element
+            BY element
+            INTO g
+            UNION { elements := array_agg(g) };
+            ''',
+            tb.bag([
+                {"elements": tb.bag([
+                    {"name": "Imp"}, {"name": "Dragon"}])},
+                {"elements": tb.bag([
+                    {"name": "Bog monster"}, {"name": "Giant turtle"}])},
+                {"elements": tb.bag([{"name": "Dwarf"}, {"name": "Golem"}])},
+                {"elements": tb.bag([
+                    {"name": "Sprite"},
+                    {"name": "Giant eagle"},
+                    {"name": "Djinn"}
+                ])}
+            ]),
+        )
+
+    async def test_edgeql_igroup_simple_bare_01(self):
+        await self.assert_query_result(
+            r'''
+            WITH MODULE cards
+            DETACHED GROUP Card
+            USING element := .element
+            BY element
+            INTO g
+            UNION { elements := g };
+            ''',
+            tb.bag([
+                {"elements": [{"id": str}] * 2},
+                {"elements": [{"id": str}] * 2},
+                {"elements": [{"id": str}] * 2},
+                {"elements": [{"id": str}] * 3},
+            ]),
+            # always_typenames=True,
+        )
+
+    async def test_edgeql_igroup_simple_bare_02(self):
+        await self.assert_query_result(
+            r'''
+            WITH MODULE cards
+            DETACHED GROUP Card
+            USING element := .element
+            BY element
+            INTO g
+            UNION { elements := array_agg(g) };
+            ''',
+            tb.bag([
+                {"elements": [{"id": str}] * 2},
+                {"elements": [{"id": str}] * 2},
+                {"elements": [{"id": str}] * 2},
+                {"elements": [{"id": str}] * 3},
+            ]),
+            # always_typenames=True,
+        )
+
     async def test_edgeql_igroup_by_01(self):
         await self.assert_query_result(
             r"""
@@ -418,7 +480,6 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
             ],
         )
 
-    @test.xfail('Broken when injecting types - None deref')
     async def test_edgeql_igroup_returning_06(self):
         await self.assert_query_result(
             r'''
@@ -445,8 +506,6 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 {'name': 'Imp'},
                 {'name': 'Sprite'},
             ],
-            # XXX: Prevent spurious successes
-            always_typenames=True,
         )
 
     @test.xfail('Broken when injecting types - missing FROM clause')
@@ -989,13 +1048,41 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         )
 
     async def test_edgeql_igroup_by_multiple_07a(self):
-        # XXX: add a version that deletes the x
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
                 SELECT (
                 DETACHED GROUP C := Card
                 USING x := C.cost
+                BY x
+                INTO C
+                UNION (
+                    array_agg(C.name ORDER BY C.name),
+                    # At this point C is a subset of Card. So the below
+                    # expression should be the size of the subset in
+                    # percent.
+                    100 * count(C) // count(Card),
+                    x,
+                )) ORDER BY .2;
+            """,
+            [
+                [['Dwarf', 'Imp', 'Sprite'], 33, int],
+                [['Bog monster', 'Giant eagle'], 22, int],
+                [['Giant turtle', 'Golem'], 22, int],
+                [['Djinn'], 11, int],
+                [['Dragon'], 11, int]
+            ]
+        )
+
+    async def test_edgeql_igroup_by_multiple_07b(self):
+        # The tricky part here is the reference to Card in both parts,
+        # which are separate. XXX: Wait, is that what we want?
+        await self.assert_query_result(
+            r"""
+                WITH MODULE cards
+                SELECT (
+                DETACHED GROUP Card
+                USING x := .cost
                 BY x
                 INTO C
                 UNION (
