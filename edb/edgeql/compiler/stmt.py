@@ -64,9 +64,21 @@ from . import typegen
 from . import conflicts
 
 
+def try_desugar(
+    expr: qlast.Query, *, ctx: context.ContextLevel
+) -> Optional[irast.Set]:
+    new_syntax = desugar_group.try_group_rewrite(expr, aliases=ctx.aliases)
+    if new_syntax:
+        return dispatch.compile(new_syntax, ctx=ctx)
+    return None
+
+
 @dispatch.compile.register(qlast.SelectQuery)
 def compile_SelectQuery(
         expr: qlast.SelectQuery, *, ctx: context.ContextLevel) -> irast.Set:
+    if rewritten := try_desugar(expr, ctx=ctx):
+        return rewritten
+
     with ctx.subquery() as sctx:
         stmt = irast.SelectStmt()
         init_stmt(stmt, expr, ctx=sctx, parent_ctx=ctx)
@@ -137,6 +149,9 @@ def compile_SelectQuery(
 @dispatch.compile.register(qlast.ForQuery)
 def compile_ForQuery(
         qlstmt: qlast.ForQuery, *, ctx: context.ContextLevel) -> irast.Set:
+    if rewritten := try_desugar(qlstmt, ctx=ctx):
+        return rewritten
+
     with ctx.subquery() as sctx:
         stmt = irast.SelectStmt(context=qlstmt.context)
         init_stmt(stmt, qlstmt, ctx=sctx, parent_ctx=ctx)
@@ -266,7 +281,7 @@ def _make_group_binding(
 def compile_InternalGroupQuery(
     expr: qlast.InternalGroupQuery, *, ctx: context.ContextLevel
 ) -> irast.Set:
-    # expr.dump()
+    # expr.dump_edgeql()
 
     with ctx.subquery() as sctx:
         stmt = irast.GroupStmt(by=expr.by)
@@ -339,7 +354,7 @@ def compile_InternalGroupQuery(
                 )
 
             stmt.result = compile_result_clause(
-                expr.result,
+                astutils.ensure_qlstmt(expr.result),
                 # XXX?
                 # view_scls=ctx.view_scls,
                 # view_rptr=ctx.view_rptr,

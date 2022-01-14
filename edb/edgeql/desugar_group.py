@@ -119,3 +119,75 @@ def desugar_group(
         grouping_alias=grouping_alias,
         result=output_shape,
     )
+
+
+def try_group_rewrite(
+    node: qlast.Query,
+    aliases: AliasGenerator,
+) -> Optional[qlast.Query]:
+    """
+    Try to apply some syntactic rewrites of GROUP expressions so we
+    can generate better code.
+
+    The two key desugarings are:
+
+    * Sink a shape into the internal group result
+
+        SELECT (GROUP ...) <shape> [filter-clause] [other clauses]
+        =>
+        SELECT (
+          DETACHED GROUP ...
+          UNION (SELECT <igroup-body> <shape> [filter-clause])
+        ) [other clauses]
+
+    * Convert a FOR over a group into just an internal group
+
+        FOR g in (GROUP ...) UNION <body>
+        =>
+        DETACHED GROUP ...
+        UNION (
+            WITH g := <group-body>
+                body
+        )
+    """
+
+    # TODO: would Python's new patern matching fit well here???
+
+    # Sink shapes into the GROUP
+    if (
+        isinstance(node, qlast.SelectQuery)
+        and isinstance(node.result, qlast.Shape)
+        and isinstance(node.result.expr, qlast.GroupQuery)
+    ):
+        igroup = desugar_group(node.result.expr, aliases)
+        igroup.result = qlast.Shape(
+            expr=igroup.result, elements=node.result.elements)
+
+        # FILTER gets sunk into the body of the DETACHED GROUP
+        if node.where:
+            igroup.result = qlast.SelectQuery(
+                # We need to duplicate the result_alias in case
+                # the FILTER depends on it
+                result_alias=node.result_alias,
+                result=igroup.result,
+                where=node.where,
+            )
+
+        return node.replace(result=igroup, where=None)
+
+    # Eliminate FORs over GROUPs
+    if (
+        isinstance(node, qlast.ForQuery)
+        and isinstance(node.iterator, qlast.GroupQuery)
+    ):
+        igroup = desugar_group(node.iterator, aliases)
+        igroup.result = qlast.SelectQuery(
+            aliases=[qlast.AliasedExpr(
+                alias=node.iterator_alias, expr=igroup.result)
+            ],
+            result=node.result,
+        )
+        igroup.aliases = node.aliases
+        return igroup
+
+    return None

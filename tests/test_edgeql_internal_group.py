@@ -418,12 +418,10 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
             ],
         )
 
-    @test.xfail('''
-        Gets duplicated once for each group
-
-        But it works if there is no outer SELECT
-    ''')
+    @test.xfail('Broken when injecting types - None deref')
     async def test_edgeql_igroup_returning_06(self):
+        self.assertTrue(False)  # ... prevent flakey unexpected successes
+
         await self.assert_query_result(
             r'''
                 # a trivial group that is actually not doing anything
