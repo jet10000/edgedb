@@ -291,47 +291,59 @@ def compile_InternalGroupQuery(
         # a fiddly thing about this all is that the group alias
         # actually *does* need to keep the shape... can we do that??
         # XXX: subcontext??
-        stmt.subject = compile_result_clause(
-            expr.subject,
-            # XXX?
-            # view_scls=ctx.view_scls,
-            # view_rptr=ctx.view_rptr,
-            result_alias=expr.subject_alias,
-            exprtype=s_types.ExprType.Group,
-            ctx=sctx)
 
-        # compile the USING
-        assert expr.using is not None
+        with sctx.newscope(fenced=True) as topctx:
+            # N.B: Subject is exposed because we want any shape on the
+            # subject to be exposed on bare references to the group
+            # alias.  This is frankly pretty dodgy behavior for
+            # DETACHED GROUP to have but the real GROUP needs to
+            # maintain shapes, and this is the easiest way to handle
+            # that.
+            stmt.subject = compile_result_clause(
+                expr.subject,
+                # XXX?
+                # view_scls=ctx.view_scls,
+                # view_rptr=ctx.view_rptr,
+                result_alias=expr.subject_alias,
+                exprtype=s_types.ExprType.Group,
+                ctx=topctx)
 
-        # XXX: should they be bound in each other's scope?
-        for using_entry in expr.using:
-            with sctx.new() as scopectx:
-                if scopectx.expr_exposed:
-                    scopectx.expr_exposed = context.Exposure.BINDING
-                binding = stmtctx.declare_view(
-                    using_entry.expr,
-                    s_name.UnqualName(using_entry.alias),
-                    binding_kind=irast.BindingKind.With,  # XXX? is it?
-                    path_id_namespace=scopectx.path_id_namespace,
-                    # XXX: I don't like doing this
-                    new_namespace=False,
-                    # must_be_used=True,  # XXX?
-                    ctx=scopectx,
+            # compile the USING
+            assert expr.using is not None
+
+            # XXX: should they be bound in each other's scope?
+            for using_entry in expr.using:
+                with topctx.new() as scopectx:
+                    if scopectx.expr_exposed:
+                        scopectx.expr_exposed = context.Exposure.BINDING
+                    binding = stmtctx.declare_view(
+                        using_entry.expr,
+                        s_name.UnqualName(using_entry.alias),
+                        binding_kind=irast.BindingKind.With,  # XXX? is it?
+                        path_id_namespace=scopectx.path_id_namespace,
+                        # XXX: I don't like doing this
+                        new_namespace=False,
+                        # must_be_used=True,  # XXX?
+                        ctx=scopectx,
+                    )
+                    binding.context = using_entry.expr.context
+                    stmt.using[using_entry.alias] = binding
+
+            subject_stype = setgen.get_set_type(stmt.subject, ctx=topctx)
+            stmt.group_binding = _make_group_binding(
+                subject_stype, expr.group_alias, ctx=topctx)
+
+            # Compile the shape on the group binding, in case we need it
+            viewgen.late_compile_view_shapes(stmt.group_binding, ctx=topctx)
+
+            if expr.grouping_alias:
+                ctx.env.schema, grouping_stype = s_types.Array.create(
+                    ctx.env.schema,
+                    element_type=ctx.env.schema.get(
+                        'std::str', type=s_types.Type)
                 )
-                binding.context = using_entry.expr.context
-                stmt.using[using_entry.alias] = binding
-
-        subject_stype = setgen.get_set_type(stmt.subject, ctx=sctx)
-        stmt.group_binding = _make_group_binding(
-            subject_stype, expr.group_alias, ctx=sctx)
-
-        if expr.grouping_alias:
-            ctx.env.schema, grouping_stype = s_types.Array.create(
-                ctx.env.schema,
-                element_type=ctx.env.schema.get('std::str', type=s_types.Type)
-            )
-            stmt.grouping_binding = _make_group_binding(
-                grouping_stype, expr.grouping_alias, ctx=sctx)
+                stmt.grouping_binding = _make_group_binding(
+                    grouping_stype, expr.grouping_alias, ctx=topctx)
 
         # compile the output
         # newscope because we don't want the result to get assigned the
@@ -362,8 +374,6 @@ def compile_InternalGroupQuery(
                 ctx=bctx)
 
         result = fini_stmt(stmt, expr, ctx=sctx, parent_ctx=ctx)
-
-    # result.dump()
 
     return result
 
@@ -1293,7 +1303,10 @@ def compile_query_subject(
                 )
             )
             or exprtype.is_mutation()
-            or exprtype == s_types.ExprType.Group
+            or (
+                exprtype == s_types.ExprType.Group
+                and not expr_stype.is_view(ctx.env.schema)
+            )
         )
         and expr_stype.is_object_type()
         and shape is None

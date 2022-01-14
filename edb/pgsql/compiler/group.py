@@ -331,10 +331,6 @@ def _compile_group(
                 matctx.materializing |= {stmt}  # ...
                 matctx.expr_exposed = True
 
-                # XXX: XXX: this is bullshit and we need to do
-                # something like this during IR compilation if at all
-                stmt.group_binding.shape = stmt.subject.shape
-
                 mat_qry = relgen.set_as_subquery(
                     stmt.group_binding, as_value=True, ctx=matctx)
                 mat_qry = relctx.set_to_array(

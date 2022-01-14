@@ -1220,6 +1220,8 @@ def __infer_group_stmt(
                 'where only singletons are allowed',
                 context=binding.context)
 
+    infer_cardinality(ir.group_binding, scope_tree=scope_tree, ctx=ctx)
+
     infer_cardinality(ir.result, scope_tree=scope_tree, ctx=ctx)
 
     _infer_matset_cardinality(
