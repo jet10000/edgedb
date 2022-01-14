@@ -329,6 +329,7 @@ def _compile_group(
             with context.output_format(ctx, context.OutputFormat.NATIVE), (
                     ctx.new()) as matctx:
                 matctx.materializing |= {stmt}  # ...
+                matctx.expr_exposed = True
 
                 # XXX: XXX: this is bullshit and we need to do
                 # something like this during IR compilation if at all

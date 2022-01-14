@@ -166,7 +166,7 @@ def compile_iterator_expr(
         ctx: context.CompilerContextLevel) \
         -> pgast.PathRangeVar:
 
-    assert isinstance(iterator_expr.expr, irast.SelectStmt)
+    assert isinstance(iterator_expr.expr, (irast.GroupStmt, irast.SelectStmt))
 
     with ctx.new() as subctx:
         subctx.expr_exposed = False
