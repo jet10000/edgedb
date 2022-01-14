@@ -420,8 +420,6 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
 
     @test.xfail('Broken when injecting types - None deref')
     async def test_edgeql_igroup_returning_06(self):
-        self.assertTrue(False)  # ... prevent flakey unexpected successes
-
         await self.assert_query_result(
             r'''
                 # a trivial group that is actually not doing anything
@@ -447,12 +445,12 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 {'name': 'Imp'},
                 {'name': 'Sprite'},
             ],
+            # XXX: Prevent spurious successes
+            always_typenames=True,
         )
 
     @test.xfail('Broken when injecting types - missing FROM clause')
     async def test_edgeql_igroup_returning_07(self):
-        self.assertTrue(False)  # ... prevent flakey unexpected successes
-
         await self.assert_query_result(
             r'''
                 # Nominate a leader in each group from among the group.
@@ -539,7 +537,9 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                         {'cost': 3, 'name': 'Giant turtle'},
                     ],
                 }
-            ]
+            ],
+            # XXX: Prevent spurious successes
+            always_typenames=True,
         )
 
     @test.xfail('Broken when injecting types - is not a computed pointer')
