@@ -332,3 +332,53 @@ class TestEdgeQLGroup(tb.QueryTestCase):
                 }
             ]),
         )
+
+    async def test_edgeql_group_grouping_sets_01(self):
+        res = [
+            {"grouping": [], "num": 9},
+            {"grouping": ["element"], "num": int},
+            {"grouping": ["element"], "num": int},
+            {"grouping": ["element"], "num": int},
+            {"grouping": ["element"], "num": int},
+            {"grouping": ["nowners"], "num": int},
+            {"grouping": ["nowners"], "num": int},
+            {"grouping": ["nowners"], "num": int},
+            {"grouping": ["nowners"], "num": int},
+            {"grouping": ["nowners", "element"], "num": int},
+            {"grouping": ["nowners", "element"], "num": int},
+            {"grouping": ["nowners", "element"], "num": int},
+            {"grouping": ["nowners", "element"], "num": int},
+            {"grouping": ["nowners", "element"], "num": int},
+            {"grouping": ["nowners", "element"], "num": int}
+        ]
+
+        await self.assert_query_result(
+            r'''
+            WITH MODULE cards
+            SELECT (
+              GROUP Card
+              USING nowners := count(.owners)
+              BY CUBE (.element, nowners)
+            ) {
+                num := count(.elements),
+                grouping
+            } ORDER BY .grouping;
+            ''',
+            res
+        )
+
+        # With an extra SELECT
+        await self.assert_query_result(
+            r'''
+            WITH MODULE cards
+            SELECT (SELECT (
+              GROUP Card
+              USING nowners := count(.owners)
+              BY CUBE (.element, nowners)
+            ) {
+                num := count(.elements),
+                grouping
+            }) ORDER BY .grouping;
+            ''',
+            res
+        )

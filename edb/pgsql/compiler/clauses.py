@@ -94,7 +94,7 @@ def compile_materialized_exprs(
     if not stmt.materialized_sets:
         return
 
-    if stmt in ctx.materializing:
+    if stmt in ctx.materializing or None in ctx.materializing:
         return
 
     with context.output_format(ctx, context.OutputFormat.NATIVE), (

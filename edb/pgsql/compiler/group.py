@@ -72,7 +72,7 @@ class FindAggregatingUses(ast_visitor.NodeVisitor):
         # aggregates, as long as the argument to the aggregate is just
         # a reference
         if isinstance(stmt, irast.SelectStmt) and (
-            stmt.orderby or stmt.limit or stmt.offset
+            stmt.orderby or stmt.limit or stmt.offset or stmt.materialized_sets
         ):
             self.aggregate = None
 
@@ -304,6 +304,11 @@ def _compile_group(
             # groupctx.path_scope[value.path_id] = None  # ???
             dispatch.visit(value, ctx=groupctx)
 
+        # XXX: OK there are some scary bits about this whole scheme....
+        # Which is that... the source fields in these aggregates
+        # can be any fucking thing
+        groupctx.materializing |= {None}
+
         for group_use in group_uses:
             if not group_use:
                 continue
@@ -318,6 +323,8 @@ def _compile_group(
                 pathctx.put_path_value_var(
                     grouprel, group_use.path_id, hoistctx.rel, env=ctx.env
                 )
+
+        groupctx.materializing -= {None}
 
         packed = False
         if None in group_uses:
@@ -371,10 +378,8 @@ def _compile_group(
             ctx=ctx)
     # XXX: mask, aspects??
     else:
-        relctx.include_rvar(
-            query, group_rvar, stmt.group_binding.path_id,
-            aspects=('value',),  # maybe?
-            update_mask=False, ctx=ctx)
+        # Not include_rvar because we don't actually provide the path id!
+        relctx.rel_join(query, group_rvar, ctx=ctx)
 
     # Set up the hoisted aggregates and bindings to be found
     # in the group subquery.

@@ -117,8 +117,9 @@ class CompilerContextLevel(compiler.ContextLevel):
     #: Query to become current in the next SUBSTMT switch.
     pending_query: Optional[pgast.SelectStmt]
 
-    #: Sets currently being materialized
-    materializing: FrozenSet[irast.Stmt]
+    #: Sets currently being materialized; a None present means don't
+    #: materialize! XXX: that is bogus.
+    materializing: FrozenSet[Optional[irast.Stmt]]
 
     #: Whether the expression currently being processed is
     #: directly exposed to the output of the statement.
