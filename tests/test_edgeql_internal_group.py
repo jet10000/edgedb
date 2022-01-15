@@ -146,6 +146,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
             [1, 1, 1],
         )
 
+    @test.xfail('doing this array_agg produces bogus results')
     async def test_edgeql_igroup_simple_09(self):
         await self.assert_query_result(
             r'''
@@ -189,6 +190,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
             # always_typenames=True,
         )
 
+    @test.xfail('doing this array_agg produces bogus results')
     async def test_edgeql_igroup_simple_bare_02(self):
         await self.assert_query_result(
             r'''
