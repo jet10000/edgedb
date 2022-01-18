@@ -442,10 +442,7 @@ def update_path(
         else:
             query = query.subject
     elif isinstance(query, qlast.ReturningMixin):
-        if (
-            isinstance(query, qlast.SelectQuery)
-            and query.result_alias is not None
-        ):
+        if query.result_alias is not None:
             return qlast.Path(steps=[
                 qlast.ObjectRef(name=query.result_alias)
             ])
@@ -789,9 +786,26 @@ def eval_InternalGroup(
                 [[g.name.split('~')[0] for g in grouping]],
                 subctx)
 
-        out += subquery(node.result, ctx=subctx)
+        new_qil, new = subquery_full(node.result, ctx=subctx)
+        out += new
 
-    return out
+    if not out:
+        return []
+
+    # XXX: There is some duplication with SELECT here
+    subq_path = update_path(ctx.cur_path, node)
+    if node.result_alias:
+        # If there is a result alias, the body is treated as being a subquery,
+        # so it doesn't become visible.
+        for i in range(len(ctx.query_input_list), len(new_qil)):
+            new_qil[i] = ()
+    new_qil += [simplify_path(subq_path) if subq_path else (IPartial(),)]
+
+    subq_ctx = replace(ctx, cur_path=subq_path)
+    out = eval_filter(node.where, new_qil, out, ctx=subq_ctx)
+    out = eval_orderby(node.orderby or [], new_qil, out, ctx=subq_ctx)
+
+    return [row[-1] for row in out]
 
 
 @_eval.register
