@@ -239,7 +239,8 @@ class InternalGroup(Nonterm):
                   UsingClause \
                   ByClause \
                   INTO Identifier OptGroupingAlias \
-                  UNION Expr \
+                  UNION OptionallyAliasedExpr \
+                  OptFilterClause OptSortClause \
         "
         self.val = qlast.InternalGroupQuery(
             subject=kids[2].val.expr,
@@ -248,7 +249,10 @@ class InternalGroup(Nonterm):
             by=kids[4].val,
             group_alias=kids[6].val,
             grouping_alias=kids[7].val,
-            result=kids[9].val,
+            result_alias=kids[9].val.alias,
+            result=kids[9].val.expr,
+            where=kids[10].val,
+            orderby=kids[11].val,
         )
 
 

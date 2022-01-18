@@ -482,6 +482,7 @@ class SubjectMixin(Base):
 
 class ReturningMixin(Base):
     __abstract_node__ = True
+    result_alias: typing.Optional[str] = None
     result: Expr
 
 
@@ -527,7 +528,7 @@ class Query(Statement):
 
 
 class SelectQuery(Query, ReturningMixin, SelectClauseMixin):
-    result_alias: typing.Optional[str] = None
+    pass
 
 
 class GroupingIdentList(Base):
@@ -560,7 +561,8 @@ class GroupQuery(Query, SubjectMixin):
     by: typing.List[GroupingElement]
 
 
-class InternalGroupQuery(GroupQuery, ReturningMixin):
+class InternalGroupQuery(
+        GroupQuery, ReturningMixin, FilterMixin, OrderByMixin):
     group_alias: str
     grouping_alias: typing.Optional[str]
 

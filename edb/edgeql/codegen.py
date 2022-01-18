@@ -399,6 +399,17 @@ class EdgeQLSourceGenerator(codegen.SourceGenerator):
         self._write_keywords('UNION ')
         self.visit(node.result)
 
+        if node.where:
+            self._write_keywords(' FILTER ')
+            self.visit(node.where)
+
+        if node.orderby:
+            self._write_keywords(' ORDER BY ')
+            self.visit_list(
+                node.orderby,
+                separator=self._kw_case(' THEN'), newlines=False
+            )
+
         if parenthesise:
             self.write(')')
 
