@@ -860,7 +860,7 @@ class SelectStmt(FilteredStmt):
     implicit_wrapper: bool = False
 
 
-class GroupStmt(Stmt):
+class GroupStmt(FilteredStmt):
     subject: Set = EmptySet()  # type: ignore
     # XXX
     using: typing.Dict[str, Set] = ast.field(factory=dict)
@@ -868,6 +868,7 @@ class GroupStmt(Stmt):
     result: Set = EmptySet()  # type: ignore
     group_binding: Set = EmptySet()  # type: ignore
     grouping_binding: typing.Optional[Set] = None
+    orderby: typing.Optional[typing.List[SortExpr]] = None
 
 
 class MutatingStmt(Stmt):

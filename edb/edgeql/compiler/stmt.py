@@ -370,8 +370,15 @@ def compile_InternalGroupQuery(
                 # XXX?
                 # view_scls=ctx.view_scls,
                 # view_rptr=ctx.view_rptr,
-                # result_alias=expr.result_alias,
+                result_alias=expr.result_alias,
                 ctx=bctx)
+
+            # or sctx??
+            clauses.compile_where_clause(
+                stmt, expr.where, ctx=bctx)
+
+            stmt.orderby = clauses.compile_orderby_clause(
+                expr.orderby, ctx=bctx)
 
         result = fini_stmt(stmt, expr, ctx=sctx, parent_ctx=ctx)
 

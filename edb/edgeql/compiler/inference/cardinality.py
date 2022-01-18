@@ -1082,6 +1082,21 @@ def _infer_stmt_cardinality(
     return result_card
 
 
+def _infer_singleton_only(
+    part: irast.Set,
+    *,
+    scope_tree: irast.ScopeTreeNode,
+    ctx: inference_context.InfCtx,
+) -> None:
+    new_scope = inf_utils.get_set_scope(part, scope_tree, ctx=ctx)
+    card = infer_cardinality(part, scope_tree=new_scope, ctx=ctx)
+    if card.is_multi():
+        raise errors.QueryError(
+            'possibly more than one element returned by an expression '
+            'where only singletons are allowed',
+            context=part.context)
+
+
 @_infer_cardinality.register
 def __infer_select_stmt(
     ir: irast.SelectStmt,
@@ -1100,13 +1115,7 @@ def __infer_select_stmt(
     for part in [ir.limit, ir.offset] + [
             sort.expr for sort in (ir.orderby or ())]:
         if part:
-            new_scope = inf_utils.get_set_scope(part, scope_tree, ctx=ctx)
-            card = infer_cardinality(part, scope_tree=new_scope, ctx=ctx)
-            if card.is_multi():
-                raise errors.QueryError(
-                    'possibly more than one element returned by an expression '
-                    'where only singletons are allowed',
-                    context=part.context)
+            _infer_singleton_only(part, scope_tree=scope_tree, ctx=ctx)
 
     if ir.limit is not None:
         if (
@@ -1222,10 +1231,10 @@ def __infer_group_stmt(
 
     infer_cardinality(ir.group_binding, scope_tree=scope_tree, ctx=ctx)
 
-    infer_cardinality(ir.result, scope_tree=scope_tree, ctx=ctx)
+    _infer_stmt_cardinality(ir, scope_tree=scope_tree, ctx=ctx)
 
-    _infer_matset_cardinality(
-        ir.materialized_sets, scope_tree=scope_tree, ctx=ctx)
+    for part in (ir.orderby or ()):
+        _infer_singleton_only(part.expr, scope_tree=scope_tree, ctx=ctx)
 
     return MANY
 

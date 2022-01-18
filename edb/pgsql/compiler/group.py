@@ -28,6 +28,7 @@ from edb.edgeql import qltypes
 from edb.ir import ast as irast
 from edb.pgsql import ast as pgast
 
+from . import astutils
 from . import clauses
 from . import context
 from . import dispatch
@@ -395,6 +396,25 @@ def _compile_group(
 
     # ... right? It's that simple?
     clauses.compile_output(stmt.result, ctx=ctx)
+
+    # XXX: duped from select?
+    with ctx.new() as ictx:
+        # FILTER and ORDER BY need to have the base result as a
+        # volatility ref.
+        clauses.setup_iterator_volatility(stmt.result, ctx=ictx)
+
+        # The FILTER clause.
+        if stmt.where is not None:
+            query.where_clause = astutils.extend_binop(
+                query.where_clause,
+                clauses.compile_filter_clause(
+                    stmt.where, stmt.where_card, ctx=ctx))
+
+        # The ORDER BY clause
+        if stmt.orderby is not None:
+            with ctx.new() as ictx:
+                query.sort_clause = clauses.compile_orderby_clause(
+                    stmt.orderby, ctx=ictx)
 
     # XXX: bindings?
 
