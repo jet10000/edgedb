@@ -133,11 +133,14 @@ def try_group_rewrite(
 
     * Sink a shape into the internal group result
 
-        SELECT (GROUP ...) <shape> [filter-clause] [other clauses]
+        SELECT (GROUP ...) <shape>
+        [filter-clause] [order-clause] [other clauses]
         =>
         SELECT (
           DETACHED GROUP ...
-          UNION (SELECT <igroup-body> <shape> [filter-clause])
+          UNION <igroup-body> <shape>
+          [filter-clause]
+          [order-clause]
         ) [other clauses]
 
     * Convert a FOR over a group into just an internal group
@@ -160,20 +163,21 @@ def try_group_rewrite(
         and isinstance(node.result.expr, qlast.GroupQuery)
     ):
         igroup = desugar_group(node.result.expr, aliases)
-        igroup.result = qlast.Shape(
-            expr=igroup.result, elements=node.result.elements)
+        igroup = igroup.replace(result=qlast.Shape(
+            expr=igroup.result, elements=node.result.elements))
 
         # FILTER gets sunk into the body of the DETACHED GROUP
-        if node.where:
-            igroup.result = qlast.SelectQuery(
-                # We need to duplicate the result_alias in case
-                # the FILTER depends on it
+        if node.where or node.orderby:
+            igroup = igroup.replace(
+                # We need to move the result_alias in case
+                # the FILTER depends on it.
                 result_alias=node.result_alias,
-                result=igroup.result,
                 where=node.where,
+                orderby=node.orderby,
             )
 
-        return node.replace(result=igroup, where=None)
+        return node.replace(
+            result=igroup, result_alias=None, where=None, orderby=None)
 
     # Eliminate FORs over GROUPs
     if (
@@ -181,13 +185,12 @@ def try_group_rewrite(
         and isinstance(node.iterator, qlast.GroupQuery)
     ):
         igroup = desugar_group(node.iterator, aliases)
-        igroup.result = qlast.SelectQuery(
+        new_result = qlast.SelectQuery(
             aliases=[qlast.AliasedExpr(
                 alias=node.iterator_alias, expr=igroup.result)
             ],
             result=node.result,
         )
-        igroup.aliases = node.aliases
-        return igroup
+        return igroup.replace(result=new_result, aliases=node.aliases)
 
     return None
