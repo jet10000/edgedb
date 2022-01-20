@@ -19,7 +19,6 @@
 import os.path
 
 from edb.testbase import server as tb
-from edb.tools import test
 
 
 class TestEdgeQLGroup(tb.QueryTestCase):
@@ -122,10 +121,9 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             ])
         )
 
-    @test.xfail('We are inserting "id" into the part that gets output?')
     async def test_edgeql_group_simple_no_id_output_01(self):
         # the implicitly injected id was making it into the output
-        # in native mode?
+        # in native mode at one point
         res = await self.con.query('GROUP cards::Card {name} BY .element')
         el = tuple(tuple(res)[0].elements)[0]
         self.assertNotIn("id := ", str(el))
@@ -442,7 +440,6 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             #     {"grouping": ["cost", "element", "nowners"]}
             # ]
         )
-
 
     async def test_edgeql_group_for_01(self):
         await self.assert_query_result(
