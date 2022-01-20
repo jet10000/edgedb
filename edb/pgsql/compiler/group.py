@@ -24,6 +24,7 @@ from typing import *
 from edb.common import ast as ast_visitor
 
 from edb.edgeql import ast as qlast
+from edb.edgeql import desugar_group
 from edb.edgeql import qltypes
 from edb.ir import ast as irast
 from edb.pgsql import ast as pgast
@@ -179,17 +180,22 @@ def _compile_grouping_value(
     assert stmt.grouping_binding
     grouprel = ctx.rel
 
+    used_args = desugar_group.collect_grouping_atoms(stmt.by)
+
     # XXX: omit the ones that aren't really grouped on
-    if len(stmt.using) == 1:
+    if len(used_args) == 1:
         return pgast.ArrayExpr(
             elements=[
-                pgast.StringConstant(val=list(stmt.using)[0].split('~')[0])]
+                pgast.StringConstant(val=list(used_args)[0].split('~')[0])]
         )
+
+    # XXX: or do we want to sort this?
+    using = {k: stmt.using[k] for k in used_args}
 
     args = [
         pathctx.get_path_var(
             grouprel, alias_set.path_id, aspect='value', env=ctx.env)
-        for alias_set in stmt.using.values()
+        for alias_set in using.values()
     ]
 
     grouping_alias = ctx.env.aliases.get('g')
@@ -209,9 +215,9 @@ def _compile_grouping_value(
     grouping_ref = pgast.ColumnRef(name=(grouping_alias,))
 
     els: List[pgast.BaseExpr] = []
-    for i, name in enumerate(stmt.using):
+    for i, name in enumerate(using):
         name = name.split('~')[0]  # ...
-        mask = 1 << (len(stmt.using) - i - 1)
+        mask = 1 << (len(using) - i - 1)
         # (CASE (e & 2) WHEN 0 THEN 'a' ELSE NULL END)
 
         els.append(pgast.CaseExpr(

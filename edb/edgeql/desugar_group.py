@@ -27,7 +27,9 @@ from __future__ import annotations
 
 from typing import *
 
+from edb.common import ordered
 from edb.common.compiler import AliasGenerator
+
 from edb.edgeql import ast as qlast
 
 
@@ -47,6 +49,36 @@ def make_free_object(els: Dict[str, qlast.Expr]) -> qlast.Shape:
             for name, expr in els.items()
         ],
     )
+
+
+def collect_grouping_atoms(
+        els: List[qlast.GroupingElement]) -> AbstractSet[str]:
+    atoms: ordered.OrderedSet[str] = ordered.OrderedSet()
+
+    def _collect_atom(el: qlast.GroupingAtom) -> None:
+        if isinstance(el, qlast.GroupingIdentList):
+            for at in el.elements:
+                _collect_atom(at)
+
+        assert isinstance(el, qlast.ObjectRef)
+        atoms.add(el.name)
+
+    def _collect_el(el: qlast.GroupingElement) -> None:
+        if isinstance(el, qlast.GroupingSets):
+            for sub in el.sets:
+                _collect_el(sub)
+        elif isinstance(el, qlast.GroupingOperation):
+            for at in el.elements:
+                _collect_atom(at)
+        elif isinstance(el, qlast.GroupingSimple):
+            _collect_atom(el.element)
+        else:
+            raise AssertionError('Unknown GroupingElement')
+
+    for el in els:
+        _collect_el(el)
+
+    return atoms
 
 
 def desugar_group(
@@ -95,12 +127,15 @@ def desugar_group(
     for alias, path in alias_map.values():
         using.append(qlast.AliasedExpr(alias=alias, expr=path))
 
+    actual_keys = collect_grouping_atoms(by)
+
     g_alias = aliases.get('g')
     grouping_alias = aliases.get('grouping')
     output_dict = {
         'key': make_free_object({
             name: name_path(alias)
             for name, (alias, _) in alias_map.items()
+            if alias in actual_keys
         }),
         'grouping': name_path(grouping_alias),
         'elements': name_path(g_alias),

@@ -130,6 +130,16 @@ class TestEdgeQLGroup(tb.QueryTestCase):
         el = tuple(tuple(res)[0].elements)[0]
         self.assertNotIn("id := ", str(el))
 
+    async def test_edgeql_group_simple_unused_alias_01(self):
+        await self.con.query('''
+            WITH MODULE cards
+            SELECT (
+              GROUP Card
+              USING x := count(.owners), nowners := x,
+              BY CUBE (.element, nowners)
+            )
+        ''')
+
     async def test_edgeql_group_process_select_01(self):
         await self.assert_query_result(
             r'''
@@ -340,16 +350,16 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             {"grouping": ["element"], "num": int},
             {"grouping": ["element"], "num": int},
             {"grouping": ["element"], "num": int},
+            {"grouping": ["element", "nowners"], "num": int},
+            {"grouping": ["element", "nowners"], "num": int},
+            {"grouping": ["element", "nowners"], "num": int},
+            {"grouping": ["element", "nowners"], "num": int},
+            {"grouping": ["element", "nowners"], "num": int},
+            {"grouping": ["element", "nowners"], "num": int},
             {"grouping": ["nowners"], "num": int},
             {"grouping": ["nowners"], "num": int},
             {"grouping": ["nowners"], "num": int},
             {"grouping": ["nowners"], "num": int},
-            {"grouping": ["nowners", "element"], "num": int},
-            {"grouping": ["nowners", "element"], "num": int},
-            {"grouping": ["nowners", "element"], "num": int},
-            {"grouping": ["nowners", "element"], "num": int},
-            {"grouping": ["nowners", "element"], "num": int},
-            {"grouping": ["nowners", "element"], "num": int}
         ]
 
         await self.assert_query_result(
@@ -382,6 +392,57 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             ''',
             res
         )
+
+        await self.assert_query_result(
+            r'''
+            WITH MODULE cards
+            SELECT (
+              GROUP Card
+              USING x := count(.owners), nowners := x,
+              BY CUBE (.element, nowners)
+            ) {
+                num := count(.elements),
+                grouping
+            } ORDER BY .grouping;
+            ''',
+            res
+        )
+
+    async def test_edgeql_group_grouping_sets_02(self):
+        # we just care about the grouping names we generate
+        await self.assert_query_result(
+            r'''
+            WITH MODULE cards
+            SELECT (
+              WITH W := (SELECT Card { name } LIMIT 1)
+              GROUP W
+              USING nowners := count(.owners)
+              BY CUBE (.element, .cost, nowners)
+            ) { grouping } ORDER BY (len(.grouping), .grouping);
+            ''',
+            [
+                {"grouping": []},
+                {"grouping": ["cost"]},
+                {"grouping": ["element"]},
+                {"grouping": ["nowners"]},
+                {"grouping": ["cost", "nowners"]},
+                {"grouping": ["element", "cost"]},
+                {"grouping": ["element", "nowners"]},
+                {"grouping": ["element", "cost", "nowners"]}
+            ]
+            # XXX: or a sorted version?
+            # [
+            #     {"grouping": []},
+            #     {"grouping": ["cost"]},
+            #     {"grouping": ["element"]},
+            #     {"grouping": ["nowners"]},
+            #     {"grouping": ["cost", "element"]},
+            #     {"grouping": ["cost", "nowners"]},
+            #     {"grouping": ["element", "nowners"]},
+            #     {"grouping": ["cost", "element", "nowners"]}
+            # ]
+        )
+
 
     async def test_edgeql_group_for_01(self):
         await self.assert_query_result(
