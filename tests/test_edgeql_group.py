@@ -382,3 +382,27 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             ''',
             res
         )
+
+    async def test_edgeql_group_for_01(self):
+        await self.assert_query_result(
+            r'''
+            WITH MODULE cards
+            FOR g in (GROUP Card BY .element) UNION (
+                WITH U := g.elements,
+                SELECT U {
+                    name,
+                    cost_ratio := .cost / math::mean(g.elements.cost)
+            });
+            ''',
+            tb.bag([
+                {"cost_ratio": 0.42857142857142855, "name": "Sprite"},
+                {"cost_ratio": 0.8571428571428571, "name": "Giant eagle"},
+                {"cost_ratio": 1.7142857142857142, "name": "Djinn"},
+                {"cost_ratio": 0.5, "name": "Dwarf"},
+                {"cost_ratio": 1.5, "name": "Golem"},
+                {"cost_ratio": 0.3333333333333333, "name": "Imp"},
+                {"cost_ratio": 1.6666666666666667, "name": "Dragon"},
+                {"cost_ratio": 0.8, "name": "Bog monster"},
+                {"cost_ratio": 1.2, "name": "Giant turtle"}
+            ])
+        )
