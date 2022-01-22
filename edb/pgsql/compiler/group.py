@@ -286,10 +286,8 @@ def _compile_group(
             subjctx.path_scope[stmt.subject.path_id] = None
             subjctx.expr_exposed = False
 
-            pathctx.put_path_id_map(
-                subjctx.rel,
-                stmt.group_binding.path_id, stmt.subject.path_id)
             dispatch.visit(stmt.subject, ctx=subjctx)
+
         # XXX: aspects?
         subj_rvar = relctx.rvar_for_rel(
             subjctx.rel, ctx=groupctx, lateral=True)
@@ -303,6 +301,14 @@ def _compile_group(
         relctx.include_rvar(
             grouprel, subj_rvar, stmt.subject.path_id,
             update_mask=False, ctx=groupctx)
+
+        # OH MY.
+        # We set up this mapping *after* compiling and including the rvar
+        # under both names, because we need materialized things under
+        # both paths to make it out.
+        pathctx.put_path_id_map(
+            subjctx.rel,
+            stmt.group_binding.path_id, stmt.subject.path_id)
 
         # Now we compile the bindings
         groupctx.path_scope = subjctx.path_scope.new_child()

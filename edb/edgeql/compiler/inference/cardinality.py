@@ -618,7 +618,9 @@ def _infer_set_inner(
         card = AT_MOST_ONE
     elif ir.expr is not None:
         card = expr_card
-    elif _is_singleton_type(ir.typeref):
+    # XXX: hack around some group issues; but also what about the
+    # multiplicity side!
+    elif _is_singleton_type(ir.typeref) and not ir.is_binding:
         card = ONE
     else:
         card = MANY

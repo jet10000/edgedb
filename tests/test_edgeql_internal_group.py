@@ -527,7 +527,6 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
             ],
         )
 
-    @test.xfail('Broken when injecting types - missing FROM clause')
     async def test_edgeql_igroup_returning_07(self):
         await self.assert_query_result(
             r'''
@@ -622,8 +621,6 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
 
     @test.xfail('Broken when injecting types - is not a computed pointer')
     async def test_edgeql_igroup_returning_08(self):
-        self.assertTrue(False)  # ... prevent flakey unexpected successes
-
         await self.assert_query_result(
             r'''
                 # Nominate a leader in each group from among the group.
