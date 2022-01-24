@@ -370,7 +370,7 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             ) {
                 num := count(.elements),
                 grouping
-            } ORDER BY .grouping;
+            } ORDER BY array_agg((SELECT _ := .grouping ORDER BY _))
             ''',
             res
         )
@@ -386,7 +386,7 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             ) {
                 num := count(.elements),
                 grouping
-            }) ORDER BY .grouping;
+            }) ORDER BY array_agg((SELECT _ := .grouping ORDER BY _))
             ''',
             res
         )
@@ -401,7 +401,7 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             ) {
                 num := count(.elements),
                 grouping
-            } ORDER BY .grouping;
+            } ORDER BY array_agg((SELECT _ := .grouping ORDER BY _))
             ''',
             res
         )
@@ -416,29 +416,22 @@ class TestEdgeQLGroup(tb.QueryTestCase):
               GROUP W
               USING nowners := count(.owners)
               BY CUBE (.element, .cost, nowners)
-            ) { grouping } ORDER BY (len(.grouping), .grouping);
+            ) { grouping }
+            ORDER BY (
+                count(.grouping),
+                array_agg((SELECT _ := .grouping ORDER BY _))
+            )
             ''',
             [
-                {"grouping": []},
-                {"grouping": ["cost"]},
-                {"grouping": ["element"]},
-                {"grouping": ["nowners"]},
-                {"grouping": ["cost", "nowners"]},
-                {"grouping": ["element", "cost"]},
-                {"grouping": ["element", "nowners"]},
-                {"grouping": ["element", "cost", "nowners"]}
+                {"grouping": set()},
+                {"grouping": {"cost"}},
+                {"grouping": {"element"}},
+                {"grouping": {"nowners"}},
+                {"grouping": {"cost", "element"}},
+                {"grouping": {"cost", "nowners"}},
+                {"grouping": {"element", "nowners"}},
+                {"grouping": {"element", "cost", "nowners"}}
             ]
-            # XXX: or a sorted version?
-            # [
-            #     {"grouping": []},
-            #     {"grouping": ["cost"]},
-            #     {"grouping": ["element"]},
-            #     {"grouping": ["nowners"]},
-            #     {"grouping": ["cost", "element"]},
-            #     {"grouping": ["cost", "nowners"]},
-            #     {"grouping": ["element", "nowners"]},
-            #     {"grouping": ["cost", "element", "nowners"]}
-            # ]
         )
 
     async def test_edgeql_group_for_01(self):

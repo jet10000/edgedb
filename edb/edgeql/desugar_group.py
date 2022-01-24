@@ -137,7 +137,10 @@ def desugar_group(
             for name, (alias, _) in alias_map.items()
             if alias in actual_keys
         }),
-        'grouping': name_path(grouping_alias),
+        'grouping': qlast.FunctionCall(
+            func='array_unpack',
+            args=[name_path(grouping_alias)],
+        ),
         'elements': name_path(g_alias),
     }
     output_shape = make_free_object(output_dict)

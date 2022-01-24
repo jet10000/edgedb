@@ -621,6 +621,8 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
 
     @test.xfail('Broken when injecting types - is not a computed pointer')
     async def test_edgeql_igroup_returning_08(self):
+        self.assertTrue(False)
+
         await self.assert_query_result(
             r'''
                 # Nominate a leader in each group from among the group.
