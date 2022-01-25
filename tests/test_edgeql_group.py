@@ -481,3 +481,27 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             ''',
             [{}, {}],
         )
+
+    async def test_edgeql_group_by_tuple_01(self):
+        await self.assert_query_result(
+            r"""
+                GROUP Issue
+                USING B := (Issue.status.name, Issue.time_estimate)
+                # This tuple will be {} for Issues lacking
+                # time_estimate. So effectively we're expecting only 2
+                # subsets, grouped by:
+                # - {}
+                # - ('Open', 3000)
+                BY B
+            """,
+            tb.bag([
+                {
+                    'key': {'B': ["Open", 3000]},
+                    'elements': [{}] * 1,
+                },
+                {
+                    'key': {'B': None},
+                    'elements': [{}] * 3,
+                },
+            ]),
+        )

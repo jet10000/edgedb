@@ -1089,7 +1089,7 @@ def _infer_singleton_only(
     *,
     scope_tree: irast.ScopeTreeNode,
     ctx: inference_context.InfCtx,
-) -> None:
+) -> qltypes.Cardinality:
     new_scope = inf_utils.get_set_scope(part, scope_tree, ctx=ctx)
     card = infer_cardinality(part, scope_tree=new_scope, ctx=ctx)
     if card.is_multi():
@@ -1097,6 +1097,7 @@ def _infer_singleton_only(
             'possibly more than one element returned by an expression '
             'where only singletons are allowed',
             context=part.context)
+    return card
 
 
 @_infer_cardinality.register
@@ -1222,14 +1223,10 @@ def __infer_group_stmt(
     ctx: inference_context.InfCtx,
 ) -> qltypes.Cardinality:
     infer_cardinality(ir.subject, scope_tree=scope_tree, ctx=ctx)
-    for binding in ir.using.values():
-        binding_card = infer_cardinality(
+    for key, (binding, _) in ir.using.items():
+        binding_card = _infer_singleton_only(
             binding, scope_tree=scope_tree, ctx=ctx)
-        if binding_card.is_multi():
-            raise errors.QueryError(
-                'possibly more than one element returned by an expression '
-                'where only singletons are allowed',
-                context=binding.context)
+        ir.using[key] = binding, binding_card
 
     infer_cardinality(ir.group_binding, scope_tree=scope_tree, ctx=ctx)
 

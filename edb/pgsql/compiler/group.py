@@ -172,9 +172,9 @@ def compile_grouping_atom(
         )
 
     assert isinstance(el, qlast.ObjectRef)
-    alias_set = stmt.using[el.name]
-    return pathctx.get_path_var(
-        ctx.rel, alias_set.path_id, aspect='value', env=ctx.env)
+    alias_set, _ = stmt.using[el.name]
+    return pathctx.get_path_value_var(
+        ctx.rel, alias_set.path_id, env=ctx.env)
 
 
 def compile_grouping_el(
@@ -199,12 +199,10 @@ def compile_grouping_el(
 
 
 def _compile_grouping_value(
-        stmt: irast.GroupStmt, *,
+        stmt: irast.GroupStmt, used_args: AbstractSet[str], *,
         ctx: context.CompilerContextLevel) -> pgast.BaseExpr:
     assert stmt.grouping_binding
     grouprel = ctx.rel
-
-    used_args = desugar_group.collect_grouping_atoms(stmt.by)
 
     # XXX: omit the ones that aren't really grouped on
     if len(used_args) == 1:
@@ -219,7 +217,7 @@ def _compile_grouping_value(
     args = [
         pathctx.get_path_var(
             grouprel, alias_set.path_id, aspect='value', env=ctx.env)
-        for alias_set in using.values()
+        for alias_set, _ in using.values()
     ]
 
     grouping_alias = ctx.env.aliases.get('g')
@@ -271,12 +269,12 @@ def _compile_grouping_value(
 
 
 def _compile_grouping_binding(
-        stmt: irast.GroupStmt, *,
+        stmt: irast.GroupStmt, *, used_args: AbstractSet[str],
         ctx: context.CompilerContextLevel) -> None:
     assert stmt.grouping_binding
     pathctx.put_path_var(
         ctx.rel, stmt.grouping_binding.path_id,
-        _compile_grouping_value(stmt, ctx=ctx),
+        _compile_grouping_value(stmt, used_args=used_args, ctx=ctx),
         aspect='value', env=ctx.env)
 
 
@@ -288,7 +286,7 @@ def _compile_group(
     # XXX: or should we do this analysis on the IR side???
     visitor = FindAggregatingUses(
         stmt.group_binding.path_id,
-        {x.path_id for x in stmt.using.values()},
+        {x.path_id for x, _ in stmt.using.values()},
         ctx=ctx,
     )
     visitor.visit(stmt.result)
@@ -337,10 +335,18 @@ def _compile_group(
 
         # Now we compile the bindings
         groupctx.path_scope = subjctx.path_scope.new_child()
-        for _alias, value in stmt.using.items():
+        for _alias, (value, using_card) in stmt.using.items():
+            # If the using bit is nullable, we need to compile it
+            # as optional, or we'll get in trouble.
+            # TODO: Can we do better here and not do this
+            # in obvious cases like directly referencing an optional
+            # property.
+            if using_card.can_be_zero():
+                groupctx.force_optional = ctx.force_optional | {value.path_id}
             # assert groupctx.path_scope[value.path_id] == ctx.rel
             # groupctx.path_scope[value.path_id] = None  # ???
             dispatch.visit(value, ctx=groupctx)
+            groupctx.force_optional = ctx.force_optional
 
         # XXX: OK there are some scary bits about this whole scheme....
         # Which is that... the source fields in these aggregates
@@ -399,8 +405,21 @@ def _compile_group(
                     flavor='packed', env=ctx.env
                 )
 
+        used_args = desugar_group.collect_grouping_atoms(stmt.by)
+
         if stmt.grouping_binding:
-            _compile_grouping_binding(stmt, ctx=groupctx)
+            _compile_grouping_binding(stmt, used_args=used_args, ctx=groupctx)
+
+        # XXX: Is there a better way here? We want to make sure that none
+        # of the grouping keys get an extra serialized output from
+        # grouprel, so we just copy all their value aspects to their
+        # serialized aspects.
+        using = {k: stmt.using[k] for k in used_args}
+        for using_val, _ in using.values():
+            uref = pathctx.get_path_output(
+                grouprel, using_val.path_id, aspect='value', env=ctx.env)
+            pathctx._put_path_output_var(
+                grouprel, using_val.path_id, 'serialized', uref, env=ctx.env)
 
         grouprel.group_clause = [
             compile_grouping_el(el, stmt, ctx=groupctx) for el in stmt.by
@@ -422,7 +441,10 @@ def _compile_group(
     # Set up the hoisted aggregates and bindings to be found
     # in the group subquery.
     for group_use in [
-            *group_uses, *stmt.using.values(), stmt.grouping_binding]:
+        *group_uses,
+        *[x for x, _ in stmt.using.values()],
+        stmt.grouping_binding,
+    ]:
         if group_use:
             pathctx.put_path_rvar(
                 query, group_use.path_id,

@@ -863,7 +863,8 @@ class SelectStmt(FilteredStmt):
 class GroupStmt(FilteredStmt):
     subject: Set = EmptySet()  # type: ignore
     # XXX
-    using: typing.Dict[str, Set] = ast.field(factory=dict)
+    using: typing.Dict[str, typing.Tuple[Set, qltypes.Cardinality]] = (
+        ast.field(factory=dict))
     by: typing.List[qlast.GroupingElement]
     result: Set = EmptySet()  # type: ignore
     group_binding: Set = EmptySet()  # type: ignore

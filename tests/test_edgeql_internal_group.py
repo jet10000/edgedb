@@ -785,7 +785,6 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
             ]
         )
 
-    @test.xfail('still broken - no method to generate code for TupleVar')
     async def test_edgeql_igroup_by_tuple_01(self):
         await self.assert_query_result(
             r"""

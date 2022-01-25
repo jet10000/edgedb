@@ -278,7 +278,7 @@ def __infer_group_stmt(
     ir: irast.GroupStmt,
     env: context.Environment,
 ) -> InferredVolatility:
-    components = [ir.subject, ir.result] + list(ir.using.values())
+    components = [ir.subject, ir.result] + [v for v, _ in ir.using.values()]
     return _common_volatility(components, env)
 
 

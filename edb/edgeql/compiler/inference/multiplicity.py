@@ -664,7 +664,7 @@ def __infer_group_stmt(
     ctx: inf_ctx.InfCtx,
 ) -> inf_ctx.MultiplicityInfo:
     infer_multiplicity(ir.subject, scope_tree=scope_tree, ctx=ctx)
-    for binding in ir.using.values():
+    for binding, _ in ir.using.values():
         infer_multiplicity(binding, scope_tree=scope_tree, ctx=ctx)
     _infer_stmt_multiplicity(ir, scope_tree=scope_tree, ctx=ctx)
 

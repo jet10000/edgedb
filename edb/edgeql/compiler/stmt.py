@@ -327,7 +327,8 @@ def compile_InternalGroupQuery(
                         ctx=scopectx,
                     )
                     binding.context = using_entry.expr.context
-                    stmt.using[using_entry.alias] = binding
+                    stmt.using[using_entry.alias] = (
+                        binding, qltypes.Cardinality.UNKNOWN)
 
             subject_stype = setgen.get_set_type(stmt.subject, ctx=topctx)
             stmt.group_binding = _make_group_binding(
@@ -355,7 +356,7 @@ def compile_InternalGroupQuery(
             )
             node = bctx.path_scope.find_descendant(stmt.group_binding.path_id)
             not_none(node).is_group = True
-            for using_value in stmt.using.values():
+            for using_value, _ in stmt.using.values():
                 pathctx.register_set_in_scope(
                     using_value, path_scope=bctx.path_scope, ctx=bctx
                 )
