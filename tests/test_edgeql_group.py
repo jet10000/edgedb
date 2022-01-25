@@ -19,6 +19,7 @@
 import os.path
 
 from edb.testbase import server as tb
+from edb.tools import test
 
 
 class TestEdgeQLGroup(tb.QueryTestCase):
@@ -465,4 +466,18 @@ class TestEdgeQLGroup(tb.QueryTestCase):
                 union count(g.elements.<owner);
             ''',
             {4, 2},
+        )
+
+    @test.xfail('''
+        invalid reference to FROM-clause entry for table ...
+
+        this is a wildly useless query, though
+    ''')
+    async def test_edgeql_group_semi_join_01(self):
+        # this is useless, but shouldn't crash
+        await self.assert_query_result(
+            r'''
+                select (group User by .name).elements
+            ''',
+            [{}, {}],
         )
