@@ -308,6 +308,10 @@ def compile_InternalGroupQuery(
                 exprtype=s_types.ExprType.Group,
                 ctx=topctx)
 
+            if topctx.partial_path_prefix:
+                pathctx.register_set_in_scope(
+                    topctx.partial_path_prefix, ctx=topctx)
+
             # compile the USING
             assert expr.using is not None
 

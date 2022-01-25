@@ -35,7 +35,6 @@ class TestEdgeQLGroup(tb.QueryTestCase):
                          'groups_setup.edgeql')
 
     async def test_edgeql_group_simple_01(self):
-        # XXX: key, also
         await self.assert_query_result(
             r'''
             GROUP cards::Card {name} BY .element
@@ -505,3 +504,79 @@ class TestEdgeQLGroup(tb.QueryTestCase):
                 },
             ]),
         )
+
+    async def test_edgeql_group_by_group_by_01(self):
+        res = tb.bag([
+            {
+                "elements": tb.bag([
+                    {
+                        "agrouping": ["element"],
+                        "key": {"element": "Water", "nowners": None},
+                        "num": 2
+                    },
+                    {
+                        "agrouping": ["element"],
+                        "key": {"element": "Fire", "nowners": None},
+                        "num": 2
+                    },
+                    {
+                        "agrouping": ["element"],
+                        "key": {"element": "Earth", "nowners": None},
+                        "num": 2
+                    },
+                    {
+                        "agrouping": ["element"],
+                        "key": {"element": "Air", "nowners": None},
+                        "num": 3
+                    }
+                ]),
+                "grouping": ["agrouping"],
+                "key": {"agrouping": ["element"]}
+            },
+            {
+                "elements": tb.bag([
+                    {
+                        "agrouping": ["nowners"],
+                        "key": {"element": None, "nowners": 3},
+                        "num": 1
+                    },
+                    {
+                        "agrouping": ["nowners"],
+                        "key": {"element": None, "nowners": 4},
+                        "num": 2
+                    },
+                    {
+                        "agrouping": ["nowners"],
+                        "key": {"element": None, "nowners": 2},
+                        "num": 5
+                    },
+                    {
+                        "agrouping": ["nowners"],
+                        "key": {"element": None, "nowners": 1},
+                        "num": 1
+                    }
+                ]),
+                "grouping": ["agrouping"],
+                "key": {"agrouping": ["nowners"]}
+            }
+        ])
+
+        qry = r'''
+            WITH MODULE cards
+            GROUP (
+              SELECT (
+                GROUP Card
+                USING nowners := count(.owners)
+                BY {.element, nowners}
+              ) {
+                  num := count(.elements),
+                  key: {element, nowners},
+                  agrouping := array_agg((SELECT _ := .grouping ORDER BY _))
+              }
+            ) BY .agrouping
+        '''
+
+        await self.assert_query_result(qry, res)
+
+        # Wrapping in a select caused trouble
+        await self.assert_query_result(f'SELECT ({qry})', res)
