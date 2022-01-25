@@ -762,6 +762,8 @@ class ScopeTreeNode:
     def find_visible_ex(
         self,
         path_id: pathid.PathId,
+        *,
+        allow_group: bool=False,
     ) -> Tuple[
         Optional[ScopeTreeNode],
         Optional[FenceInfo],
@@ -805,13 +807,15 @@ class ScopeTreeNode:
                 else:
                     finfo = finfo | ans_finfo
 
+        if found and found.is_group and not allow_group:
+            found = None
         return found, finfo, namespaces
 
     def find_visible(
         self, path_id: pathid.PathId, *, allow_group: bool=False
     ) -> Optional[ScopeTreeNode]:
-        node, _, _ = self.find_visible_ex(path_id)
-        return node if (node and (allow_group or not node.is_group)) else None
+        node, _, _ = self.find_visible_ex(path_id, allow_group=allow_group)
+        return node
 
     def is_visible(
             self, path_id: pathid.PathId, *, allow_group: bool=False) -> bool:
@@ -955,6 +959,7 @@ class ScopeTreeNode:
             ):
                 cns: AbstractSet[str] = namespaces | dns
                 if (has_path_id(descendant)
+                        and not descendant.is_group
                         and _paths_equal(descendant.path_id, path_id, cns)):
                     points.append((
                         descendant, node, cns, finfo,
