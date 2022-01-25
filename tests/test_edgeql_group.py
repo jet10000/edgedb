@@ -457,3 +457,12 @@ class TestEdgeQLGroup(tb.QueryTestCase):
                 {"cost_ratio": 1.2, "name": "Giant turtle"}
             ])
         )
+
+    async def test_edgeql_group_simple_old_01(self):
+        await self.assert_query_result(
+            r'''
+                for g in (group User by .name)
+                union count(g.elements.<owner);
+            ''',
+            {4, 2},
+        )

@@ -46,13 +46,16 @@ class FindAggregatingUses(ast_visitor.NodeVisitor):
     extra_skips = frozenset(['materialized_sets'])
 
     def __init__(
-        self, target: irast.PathId, to_skip: AbstractSet[irast.PathId]
+        self, target: irast.PathId, to_skip: AbstractSet[irast.PathId],
+        ctx: context.CompilerContextLevel,
     ) -> None:
         super().__init__()
         self.target = target
         self.to_skip = to_skip
         self.aggregate: Optional[irast.Set] = None
         self.sightings: Set[Optional[irast.Set]] = set()
+        self.ctx = ctx
+        self.scope_tree = ctx.scope_tree
 
     def visit_Stmt(self, stmt: irast.Stmt) -> Any:
         # XXX???
@@ -99,6 +102,24 @@ class FindAggregatingUses(ast_visitor.NodeVisitor):
             self.sightings.add(self.aggregate)
             return
 
+        old_scope = self.scope_tree
+        if new_scope := relctx.get_scope(node, ctx=self.ctx):
+            self.scope_tree = new_scope
+
+        # We also can't handle references inside of a semi-join,
+        # because the bodies are executed one at a time, and so the
+        # semi-join deduplication doesn't work.
+        is_semijoin = (
+            node.rptr
+            and node.path_id.is_objtype_path()
+            and not self.scope_tree.is_visible(node.rptr.source.path_id)
+        )
+
+        old = self.aggregate
+        if is_semijoin:
+            # XXX: do we want this around .shape? around .expr??
+            self.aggregate = None
+
         self.visit(node.rptr)
         self.visit(node.shape)
 
@@ -108,6 +129,9 @@ class FindAggregatingUses(ast_visitor.NodeVisitor):
             self.visit(node.expr)
         # if not node.rptr:
         #     self.visit(node.expr)
+
+        self.aggregate = old
+        self.path_scope = old_scope
 
     def process_call(self, node: irast.Call, ir_set: irast.Set) -> None:
         # It needs to be backed by an actual SQL function and must
@@ -265,6 +289,7 @@ def _compile_group(
     visitor = FindAggregatingUses(
         stmt.group_binding.path_id,
         {x.path_id for x in stmt.using.values()},
+        ctx=ctx,
     )
     visitor.visit(stmt.result)
     # XXX: I think there are potentially issues with overlapping...

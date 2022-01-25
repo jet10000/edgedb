@@ -181,18 +181,19 @@ def try_group_rewrite(
           [order-clause]
         ) [other clauses]
 
-    * Convert a FOR over a group into just an internal group
+    * Convert a FOR over a group into just an internal group (and
+      a trivial FOR)
 
         FOR g in (GROUP ...) UNION <body>
         =>
         DETACHED GROUP ...
         UNION (
-            WITH g := <group-body>
-                body
+            FOR g IN (<group-body>)
+            UNION <body>
         )
     """
 
-    # TODO: would Python's new patern matching fit well here???
+    # TODO: would Python's new pattern matching fit well here???
 
     # Sink shapes into the GROUP
     if (
@@ -223,10 +224,9 @@ def try_group_rewrite(
         and isinstance(node.iterator, qlast.GroupQuery)
     ):
         igroup = desugar_group(node.iterator, aliases)
-        new_result = qlast.SelectQuery(
-            aliases=[qlast.AliasedExpr(
-                alias=node.iterator_alias, expr=igroup.result)
-            ],
+        new_result = qlast.ForQuery(
+            iterator_alias=node.iterator_alias,
+            iterator=igroup.result,
             result=node.result,
         )
         return igroup.replace(result=new_result, aliases=node.aliases)
