@@ -1173,7 +1173,11 @@ def eval_path(path: IPath, ctx: EvalContext) -> Result:
         elif isinstance(ptr, ITypeIntersection):
             out.extend(eval_intersect(obj, ptr, ctx))
     # We need to deduplicate links.
-    if base and isinstance(base[0], Obj) and out and isinstance(out[0], Obj):
+    # XXX:
+    if (
+        len(base) > 1 and isinstance(base[0], Obj)
+        and out and isinstance(out[0], Obj)
+    ):
         out = dedup(out)
 
     return out
