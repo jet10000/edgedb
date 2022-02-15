@@ -151,9 +151,16 @@ def get_set_rvar(
     """
     path_id = ir_set.path_id
 
+    path_scope = relctx.get_scope(ir_set, ctx=ctx)
+
     scope_stmt = relctx.maybe_get_scope_stmt(path_id, ctx=ctx)
+
     if rvar := _lookup_set_rvar(ir_set, scope_stmt=scope_stmt, ctx=ctx):
         return rvar
+
+    # XXX
+    if path_scope and any(path_id == c.path_id for c in path_scope.children):
+        scope_stmt = None
 
     if ctx.toplevel_stmt is context.NO_STMT:
         # Top level query
@@ -184,7 +191,6 @@ def get_set_rvar(
 
         is_empty_set = isinstance(ir_set, irast.EmptySet)
 
-        path_scope = relctx.get_scope(ir_set, ctx=subctx)
         new_scope = path_scope or subctx.scope_tree
         is_optional = (
             subctx.scope_tree.is_optional(path_id) or
