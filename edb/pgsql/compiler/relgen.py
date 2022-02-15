@@ -290,7 +290,11 @@ def _get_set_rvar(
     stmt = ctx.rel
     expr = ir_set.expr
 
-    if expr is not None:
+    if ir_set.is_materialized_ref:
+        # XXX: It's like there is a sub expr, but we deleted it...
+        rvars = process_set_as_subquery(ir_set, stmt, ctx=ctx)
+
+    elif expr is not None:
         if isinstance(expr, irast.Stmt):
             # Sub-statement (explicit or implicit), most computables
             # go here.
@@ -1146,7 +1150,6 @@ def process_set_as_subquery(
     is_objtype_path = ir_set.path_id.is_objtype_path()
 
     expr = ir_set.expr
-    assert isinstance(expr, irast.Stmt)
 
     ir_source: Optional[irast.Set]
 
@@ -1173,9 +1176,7 @@ def process_set_as_subquery(
         source_is_visible = False
 
     with ctx.new() as newctx:
-        inner_set = expr.result
         outer_id = ir_set.path_id
-        inner_id = inner_set.path_id
         semi_join = False
 
         if ir_source is not None:
@@ -1232,6 +1233,10 @@ def process_set_as_subquery(
 
         # materialized refs should always get picked up by now
         assert not ir_set.is_materialized_ref
+        assert isinstance(expr, irast.Stmt)
+
+        inner_set = expr.result
+        inner_id = inner_set.path_id
 
         if inner_id != outer_id:
             pathctx.put_path_id_map(ctx.rel, outer_id, inner_id)

@@ -120,7 +120,7 @@ def fini_expression(
     ):
         ir = setgen.scoped_set(ir, ctx=ctx)
 
-    _fixup_materialized_sets(ir, ctx=ctx)
+    to_clear = _fixup_materialized_sets(ir, ctx=ctx)
 
     # The inference context object will be shared between
     # cardinality and multiplicity inferrers.
@@ -224,6 +224,9 @@ def fini_expression(
             context=srcctx,
         )
 
+    for ir_set in to_clear:
+        ir_set.expr = None
+
     assert isinstance(ir, irast.Set)
     source_map = {k: v for k, v in ctx.source_map.items()
                   if isinstance(k, s_pointers.Pointer)}
@@ -260,13 +263,15 @@ def fini_expression(
 
 def _fixup_materialized_sets(
     ir: irast.Base, *, ctx: context.ContextLevel
-) -> None:
+) -> List[irast.Set]:
     # Make sure that all materialized sets have their views compiled
     flt = lambda n: isinstance(n, irast.Stmt)
     children: List[irast.Stmt] = ast_visitor.find_children(ir, flt)
     for nobe in ctx.source_map.values():
         if nobe.irexpr:
             children += ast_visitor.find_children(nobe.irexpr, flt)
+
+    to_clear = []
     for stmt in ordered.OrderedSet(children):
         if not stmt.materialized_sets:
             continue
@@ -326,12 +331,18 @@ def _fixup_materialized_sets(
             for use_set in mat_set.use_sets:
                 if use_set != mat_set.materialized:
                     use_set.is_materialized_ref = True
+                    # XXX: Deleting it on linkprops breaks a bunch of
+                    # linkprop related DML...
+                    if not use_set.path_id.is_linkprop_path():
+                        to_clear.append(use_set)
 
             assert (
                 not any(use.src_path() for use in mat_set.uses)
                 or mat_set.materialized.rptr
             ), f"materialized ptr {mat_set.uses} missing rptr"
             mat_set.finalized = True
+
+    return to_clear
 
 
 def _try_namespace_fix(
