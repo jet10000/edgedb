@@ -112,6 +112,8 @@ def compile_materialized_exprs(
                 continue
 
             mat_ids = set(mat_set.uses)
+            # print(">>> materializing", mat_set.materialized.path_id, mat_ids)
+            # breakpoint()
 
             # We pack optional things into arrays also, since it works.
             # TODO: use NULL?
@@ -149,6 +151,10 @@ def compile_materialized_exprs(
                     flavor='packed', update_mask=False, pull_namespace=False,
                     ctx=matctx,
                 )
+
+            # print(
+            #     "<<< done materializing",
+            #     mat_set.materialized.path_id, mat_ids)
 
 
 def compile_iterator_expr(

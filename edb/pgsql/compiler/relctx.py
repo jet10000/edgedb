@@ -1097,6 +1097,10 @@ def unpack_var(
             pathctx.put_path_rvar(
                 ctx.rel, view_path_id, rvar, aspect=aspect, env=ctx.env
             )
+            # pathctx.put_path_rvar(
+            #     ctx.rel, view_path_id, rvar, aspect=aspect,
+            #     flavor='packed', env=ctx.env
+            # )
 
     # # Every time I removed this debug spew I ended up needing it again.
     # # I'll probably remember to remove it before putting up the PR.

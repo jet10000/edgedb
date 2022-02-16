@@ -1499,6 +1499,20 @@ def _late_compile_view_shapes_in_set(
                     parent_view_type=stype.get_expr_type(ctx.env.schema),
                     ctx=scopectx)
 
+            # # ugh!
+            # materialized = setgen.should_materialize(
+            #     element, ptrcls=ptr,
+            #     materialize_visible=True,
+            #     skipped_bindings={path_tip.path_id},
+            #     ctx=ctx)
+            # is_mutation = parent_view_type and parent_view_type.is_mutation()
+            # breakpoint()
+            # if materialized and not is_mutation and ctx.qlstmt:
+            #     # assert ptr not in ctx.env.materialized_sets
+            #     ctx.env.materialized_sets[ptr] = ctx.qlstmt, materialized
+
+            #     setgen.maybe_materialize(ptr, element, ctx=ctx)
+
             shape.append((element, shape_op))
 
         ir_set.shape = tuple(shape)

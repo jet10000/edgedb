@@ -154,13 +154,21 @@ def get_set_rvar(
     path_scope = relctx.get_scope(ir_set, ctx=ctx)
 
     scope_stmt = relctx.maybe_get_scope_stmt(path_id, ctx=ctx)
+    # if path_scope and any(path_id == c.path_id for c in path_scope.children):
+    #     print("WOULD CLEAR?", path_id, path_scope.unique_id)
+    #     breakpoint()
 
     if rvar := _lookup_set_rvar(ir_set, scope_stmt=scope_stmt, ctx=ctx):
         return rvar
 
     # XXX
     if path_scope and any(path_id == c.path_id for c in path_scope.children):
+        # print("CLEARING OUT", path_id, path_scope.unique_id)
         scope_stmt = None
+
+    # if scope_stmt and scope_stmt != ctx.rel:
+    #     print(path_id)
+    #     breakpoint()
 
     if ctx.toplevel_stmt is context.NO_STMT:
         # Top level query
@@ -1236,6 +1244,9 @@ def process_set_as_subquery(
                         subrvar, value_var, aspect='value', env=ctx.env))
 
             return _new_subquery_stmt_set_rvar(ir_set, stmt, ctx=ctx)
+
+        # if ir_set.is_materialized_ref:
+        #     breakpoint()
 
         # materialized refs should always get picked up by now
         assert not ir_set.is_materialized_ref

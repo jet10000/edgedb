@@ -1141,12 +1141,21 @@ def compile_query_subject(
                 and allow_select_shape_inject
 
                 and not forward_rptr
-                and viewgen.has_implicit_type_computables(
-                    expr_stype,
-                    is_mutation=exprtype.is_mutation(),
-                    ctx=ctx,
+                and (
+                    (
+                        viewgen.has_implicit_type_computables(
+                            expr_stype,
+                            is_mutation=exprtype.is_mutation(),
+                            ctx=ctx,
+                        )
+                        and not expr_stype.is_view(ctx.env.schema)
+                    )
+                    or (
+                        ctx.expr_exposed == context.Exposure.BINDING
+                        and setgen.should_materialize(expr, ctx=ctx)
+                        # and expr_stype not in ctx.env.view_shapes
+                    )
                 )
-                and not expr_stype.is_view(ctx.env.schema)
             )
             or exprtype.is_mutation()
         )

@@ -3040,6 +3040,13 @@ class TestEdgeQLScope(tb.QueryTestCase):
             ["Alice"],
         )
 
+    # XXX: one with random and a filter on it
+
+    # WITH
+    # U := (for c in {'A', 'B', 'C', 'D'} union (SELECT User { name, single tag := c } FILTER .name[0] = c and random() > 0)),
+    # A := (SELECT U {name} FILTER .name IN {'Alice', 'Bob'}) { name },
+    # SELECT A { name, tag };
+
     async def test_edgeql_scope_ref_outer_01(self):
         await self.assert_query_result(
             """

@@ -326,6 +326,11 @@ def _fixup_materialized_sets(
                 subctx.implicit_tid_in_shapes = False
                 subctx.implicit_tname_in_shapes = False
                 subctx.path_scope = new_scope
+                # uhhhh
+                # subctx.qlstmt = qlast.SelectQuery(
+                #     result=qlast.Set(elements=[]))
+                # subctx.env.compiled_stmts[subctx.qlstmt] = ir_set.expr
+                # breakpoint()
                 viewgen.late_compile_view_shapes(ir_set, ctx=subctx)
 
             for use_set in mat_set.use_sets:
