@@ -95,6 +95,9 @@ def _pull_path_namespace(
 
         for path_id, aspect in s_paths:
             orig_path_id = path_id
+            # XXX: This was necessary to make some test pass at some point!
+            # But it doesn't matter either way now!
+            # This potential if branch has been haunting me for a year.
             if flavor != 'packed':
                 path_id = pathctx.reverse_map_path_id(
                     path_id, view_path_id_map)

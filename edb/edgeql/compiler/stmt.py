@@ -1150,11 +1150,11 @@ def compile_query_subject(
                         )
                         and not expr_stype.is_view(ctx.env.schema)
                     )
-                    or (
-                        ctx.expr_exposed == context.Exposure.BINDING
-                        and setgen.should_materialize(expr, ctx=ctx)
-                        # and expr_stype not in ctx.env.view_shapes
-                    )
+                    # or (
+                    #     ctx.expr_exposed == context.Exposure.BINDING
+                    #     and setgen.should_materialize(expr, ctx=ctx)
+                    #     # and expr_stype not in ctx.env.view_shapes
+                    # )
                 )
             )
             or exprtype.is_mutation()

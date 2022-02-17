@@ -926,10 +926,11 @@ class TestEdgeQLFor(tb.QueryTestCase):
             ],
         )
 
-    @test.xfail("""
-        This is an issue with materialization and arrays
-    """)
+    # @test.xfail("""
+    #     This is an issue with materialization and arrays
+    # """)
     async def test_edgeql_for_in_function_01(self):
+        # XXX: This works... but does that make sense?
         await self.assert_query_result(
             r'''
                 SELECT array_unpack([(

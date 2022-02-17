@@ -133,9 +133,13 @@ def _lookup_set_rvar(
                                    path_id=path_id, ctx=ctx)
 
     if packed_rvar is not None:
-        rvar = relctx.unpack_rvar(
-            scope_stmt or ctx.rel,
-            path_id, packed_rvar=packed_rvar, ctx=ctx)
+        try:
+            rvar = relctx.unpack_rvar(
+                scope_stmt or ctx.rel,
+                path_id, packed_rvar=packed_rvar, ctx=ctx)
+        except LookupError:
+            # print("FAILURE DOING _lookup_set_rvar??")
+            return None
 
         return rvar
 
@@ -1167,6 +1171,7 @@ def process_set_as_subquery(
 
     ir_source: Optional[irast.Set]
 
+    source_set_rvar = None
     if ir_set.rptr is not None:
         ir_source = ir_set.rptr.source
         if not is_objtype_path:
@@ -1179,12 +1184,14 @@ def process_set_as_subquery(
             source_is_visible = outer_fence.is_visible(ir_source.path_id)
 
         if source_is_visible:
-            get_set_rvar(ir_source, ctx=ctx)
+            # print(">>> get ir_source", ir_source)
+            source_set_rvar = get_set_rvar(ir_source, ctx=ctx)
             # Force a source rvar so that trivial computed pointers
             # on erroneous objects (like a bad array deref) fail.
             # (Most sensible computables will end up requiring the
             # source rvar anyway.)
             ensure_source_rvar(ir_source, ctx.rel, ctx=ctx)
+            # print("<<< get ir_source", ir_source)
     else:
         ir_source = None
         source_is_visible = False
@@ -1228,11 +1235,48 @@ def process_set_as_subquery(
                 relctx.include_rvar(
                     stmt, subrvar, ir_source.path_id, ctx=ctx)
 
+        # I am not sure this is at all the right approach
+        # But we are hitting situations where things are down in
+        # the source rvar but not showing up. I don't think this is
+        # how to handle it though?
+        #
+        # Additionally I haven't gotten the plumbing working with
+        # things that are packed themselves figured out... those need
+        # to be unpacked!
+        def _try_source_rvar() -> Optional[pgast.PathRangeVar]:
+            if not (
+                ir_set.is_materialized_ref
+                and isinstance(source_set_rvar, pgast.RangeSubselect)
+            ):
+                return None
+
+            if pathctx.maybe_get_path_value_var(
+                source_set_rvar.subquery, ir_set.path_id, env=ctx.env
+            ):
+                return source_set_rvar  # not really but XXX???
+
+            if packed_ref := pathctx.maybe_get_rvar_path_var(
+                source_set_rvar,
+                pathctx.map_path_id(
+                    ir_set.path_id,
+                    source_set_rvar.subquery.view_path_id_map,
+                ),
+                aspect='value',
+                flavor='packed',
+                env=ctx.env,
+            ):
+                return relctx.unpack_var(
+                    stmt, ir_set.path_id, ref=packed_ref, ctx=ctx)
+            return None
+
         # If we are looking at a materialized computable, running
         # get_set_rvar on the source above may have made it show
         # up. So try to lookup the rvar again, and if we find it,
         # skip compiling the computable.
-        if ir_source and (new_rvar := _lookup_set_rvar(ir_set, ctx=ctx)):
+        if ir_source and (new_rvar := (
+            _lookup_set_rvar(ir_set, ctx=ctx)
+            or _try_source_rvar()
+        )):
             if semi_join:
                 # We need to use DISTINCT, instead of doing an actual
                 # semi-join, unfortunately: we need to extract data
@@ -1244,9 +1288,6 @@ def process_set_as_subquery(
                         subrvar, value_var, aspect='value', env=ctx.env))
 
             return _new_subquery_stmt_set_rvar(ir_set, stmt, ctx=ctx)
-
-        # if ir_set.is_materialized_ref:
-        #     breakpoint()
 
         # materialized refs should always get picked up by now
         assert not ir_set.is_materialized_ref

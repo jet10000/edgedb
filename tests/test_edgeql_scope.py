@@ -3024,10 +3024,6 @@ class TestEdgeQLScope(tb.QueryTestCase):
             ["Alice"],
         )
 
-    @test.xfail('''
-        There is no range var for...
-        Sticking a shape in the SELECT U fixes it...
-    ''')
     async def test_edgeql_scope_source_rebind_02(self):
         await self.assert_query_result(
             """
@@ -3040,10 +3036,33 @@ class TestEdgeQLScope(tb.QueryTestCase):
             ["Alice"],
         )
 
+    async def test_edgeql_scope_source_rebind_03(self):
+        await self.assert_query_result(
+            """
+                WITH
+                U := (SELECT User {
+                    cards := (SELECT .deck FILTER random() > 0) }),
+                A := (SELECT U FILTER .name = 'Alice')
+                SELECT A {cards: {name}};
+            """,
+            [
+                {
+                    "cards": tb.bag([
+                        {"name": "Imp"},
+                        {"name": "Dragon"},
+                        {"name": "Bog monster"},
+                        {"name": "Giant turtle"}
+                    ]),
+                }
+            ]
+        )
+
     # XXX: one with random and a filter on it
 
     # WITH
-    # U := (for c in {'A', 'B', 'C', 'D'} union (SELECT User { name, single tag := c } FILTER .name[0] = c and random() > 0)),
+    # U := (for c in {'A', 'B', 'C', 'D'} union (
+    #     SELECT User { name, single tag := c }
+    #     FILTER .name[0] = c and random() > 0)),
     # A := (SELECT U {name} FILTER .name IN {'Alice', 'Bob'}) { name },
     # SELECT A { name, tag };
 
