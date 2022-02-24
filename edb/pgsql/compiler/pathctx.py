@@ -343,7 +343,8 @@ def _find_rel_rvar(
         assert flavor == 'normal'
         var = rel.path_namespace.get((path_id, alt_aspect))
         if var is not None:
-            put_path_var(rel, path_id, var, aspect=aspect, env=env)
+            put_path_var(
+                rel, path_id, var, aspect=aspect, flavor=flavor, env=env)
             return src_aspect, None, var
 
     return src_aspect, rel_rvar, None
@@ -1047,7 +1048,7 @@ def get_path_output(
         flavor: str='normal',
         env: context.Environment) -> pgast.OutputVar:
 
-    if isinstance(rel, pgast.Query) and flavor == 'normal':
+    if isinstance(rel, pgast.Query) and flavor == 'normal':  # XXX???
         path_id = map_path_id(path_id, rel.view_path_id_map)
 
     return _get_path_output(rel, path_id=path_id, aspect=aspect,

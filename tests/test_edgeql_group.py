@@ -580,3 +580,62 @@ class TestEdgeQLGroup(tb.QueryTestCase):
 
         # Wrapping in a select caused trouble
         await self.assert_query_result(f'SELECT ({qry})', res)
+
+    async def test_edgeql_group_by_group_by_02(self):
+        res = tb.bag([
+            {
+                "elements": tb.bag([
+                    {"key": {"cost": 1, "element": None}, "n": 3},
+                    {"key": {"cost": 2, "element": None}, "n": 2},
+                    {"key": {"cost": 3, "element": None}, "n": 2},
+                    {"key": {"cost": 4, "element": None}, "n": 1},
+                    {"key": {"cost": 5, "element": None}, "n": 1},
+                ]),
+                "key": {"grouping": ["cost"]}
+            },
+            {
+                "elements": tb.bag([
+                    {"key": {"cost": None, "element": "Water"}, "n": 2},
+                    {"key": {"cost": None, "element": "Earth"}, "n": 2},
+                    {"key": {"cost": None, "element": "Fire"}, "n": 2},
+                    {"key": {"cost": None, "element": "Air"}, "n": 3},
+                ]),
+                "key": {"grouping": ["element"]}
+            }
+        ])
+
+        await self.assert_query_result(
+            '''
+            WITH MODULE cards, G := (
+            GROUP (
+              GROUP Card
+              BY {.element, .cost}
+            )
+            USING grouping := array_agg(.grouping)
+            BY grouping),
+            SELECT G {
+                key: {grouping},
+                elements: { n := count(.elements), key: {element, cost}}
+            }
+            ''',
+            res,
+        )
+
+        # XXX: there is some confusion between expr~40 and g??
+
+        # await self.assert_query_result(
+        #     '''
+        #     WITH MODULE cards,
+        #     SELECT (
+        #     GROUP (
+        #       GROUP Card
+        #       BY {.element, .cost}
+        #     )
+        #     USING grouping := array_agg(.grouping)
+        #     BY grouping) {
+        #         key: {grouping},
+        #         elements: { n := count(.elements), key: {element, cost}}
+        #     }
+        #     ''',
+        #     res,
+        # )
