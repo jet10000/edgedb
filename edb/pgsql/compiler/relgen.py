@@ -1166,6 +1166,10 @@ def _new_subquery_stmt_set_rvar(
 def process_set_as_subquery(
         ir_set: irast.Set, stmt: pgast.SelectStmt, *,
         ctx: context.CompilerContextLevel) -> SetRVars:
+    assert not ir_set.is_visible_binding_ref, (
+        "Can't compile ref to visible binding -- why wasn't binding found?"
+    )
+
     is_objtype_path = ir_set.path_id.is_objtype_path()
 
     expr = ir_set.expr
