@@ -340,7 +340,8 @@ def _find_rel_rvar(
     if rel_rvar is None and alt_aspect is not None:
         # There is no source range var for the requested aspect,
         # check if there is a cached var with less specificity.
-        assert flavor == 'normal'
+        # assert flavor == 'normal'
+        # XXX: check the other path_namespace?
         var = rel.path_namespace.get((path_id, alt_aspect))
         if var is not None:
             put_path_var(

@@ -30,6 +30,7 @@ from edb.common import context as pctx
 from edb.common.typeutils import not_none
 
 from edb.ir import ast as irast
+from edb.ir import typeutils
 
 from edb.schema import links as s_links
 from edb.schema import name as sn
@@ -158,7 +159,16 @@ def _process_view(
     is_mutation = exprtype.is_insert() or exprtype.is_update()
     is_defining_shape = ctx.expr_exposed or is_mutation
 
+    orig_ir_set = ir_set
     ir_set = setgen.ensure_set(ir_set, type_override=view_scls, ctx=ctx)
+    # XXX: IS THIS RIGHT? I HATE THESE LATE ANALYSES SO MUCH
+    # Could we *replace???*
+    # XXX: Why do we look at base_ptr? This is dodgy and I hate it
+    if orig_ir_set.rptr and orig_ir_set.rptr.ptrref.base_ptr:
+        ctx.env.schema, root_old_ptrcls = typeutils.ptrcls_from_ptrref(
+            orig_ir_set.rptr.ptrref.base_ptr, schema=ctx.env.schema
+        )
+        setgen.maybe_materialize(root_old_ptrcls, ir_set, ctx=ctx)
 
     if view_rptr is not None and view_rptr.ptrcls is None:
         derive_ptrcls(

@@ -623,19 +623,19 @@ class TestEdgeQLGroup(tb.QueryTestCase):
 
         # XXX: there is some confusion between expr~40 and g??
 
-        # await self.assert_query_result(
-        #     '''
-        #     WITH MODULE cards,
-        #     SELECT (
-        #     GROUP (
-        #       GROUP Card
-        #       BY {.element, .cost}
-        #     )
-        #     USING grouping := array_agg(.grouping)
-        #     BY grouping) {
-        #         key: {grouping},
-        #         elements: { n := count(.elements), key: {element, cost}}
-        #     }
-        #     ''',
-        #     res,
-        # )
+        await self.assert_query_result(
+            '''
+            WITH MODULE cards,
+            SELECT (
+            GROUP (
+              GROUP Card
+              BY {.element, .cost}
+            )
+            USING grouping := array_agg(.grouping)
+            BY grouping) {
+                key: {grouping},
+                elements: { n := count(.elements), key: {element, cost}}
+            }
+            ''',
+            res,
+        )
