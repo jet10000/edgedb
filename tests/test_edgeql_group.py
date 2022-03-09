@@ -18,6 +18,8 @@
 
 import os.path
 
+import edgedb
+
 from edb.testbase import server as tb
 from edb.tools import test
 
@@ -639,3 +641,21 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             ''',
             res,
         )
+
+    async def test_edgeql_group_id_errors(self):
+        async with self.assertRaisesRegexTx(
+            edgedb.UnsupportedFeatureError,
+            r"may not name a grouping alias 'id'"
+        ):
+            await self.con.execute('''
+                group cards::Card{name} using id := .id by id
+            ''')
+
+        async with self.assertRaisesRegexTx(
+            edgedb.UnsupportedFeatureError,
+            r"may not group by a field named id",
+            _position=44,
+        ):
+            await self.con.execute('''
+                group cards::Card{name} by .id
+            ''')

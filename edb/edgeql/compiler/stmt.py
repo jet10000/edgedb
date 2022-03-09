@@ -318,6 +318,20 @@ def compile_InternalGroupQuery(
 
             # XXX: should they be bound in each other's scope?
             for using_entry in expr.using:
+                # Fail on keys named 'id', since we can't put them
+                # in the output free object.
+                if using_entry.alias == 'id':
+                    raise errors.UnsupportedFeatureError(
+                        "may not name a grouping alias 'id'",
+                        context=using_entry.context,
+                    )
+                elif using_entry.alias.startswith('id~'):
+                    raise errors.UnsupportedFeatureError(
+                        "may not group by a field named id",
+                        context=using_entry.expr.context,
+                        hint="try 'using id_ := .id'",
+                    )
+
                 with topctx.new() as scopectx:
                     if scopectx.expr_exposed:
                         scopectx.expr_exposed = context.Exposure.BINDING
