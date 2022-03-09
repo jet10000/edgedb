@@ -33,6 +33,7 @@ from . import astutils
 from . import clauses
 from . import context
 from . import dispatch
+from . import output
 from . import pathctx
 from . import relctx
 from . import relgen
@@ -410,16 +411,30 @@ def _compile_group(
         if stmt.grouping_binding:
             _compile_grouping_binding(stmt, used_args=used_args, ctx=groupctx)
 
-        # XXX: Is there a better way here? We want to make sure that none
+        # XXX: Is there a better way here? We want to make sure that every
+        # grouping key is associated with exactly one output from
+        # the query. The means that tuples must be packed up and
+        # keys must not have an extra serialized output.
+        #
+        # We do this by manually packing up any TupleVarBases and
+        # copying value aspects to serialized.
         # of the grouping keys get an extra serialized output from
         # grouprel, so we just copy all their value aspects to their
         # serialized aspects.
         using = {k: stmt.using[k] for k in used_args}
         for using_val, _ in using.values():
-            uref = pathctx.get_path_output(
+            uvar = pathctx.get_path_var(
+                grouprel, using_val.path_id, aspect='value', env=ctx.env)
+            if isinstance(uvar, pgast.TupleVarBase):
+                uvar = output.output_as_value(uvar, env=ctx.env)
+                pathctx.put_path_var(
+                    grouprel, using_val.path_id, uvar,
+                    aspect='value', force=True, env=ctx.env)
+
+            uout = pathctx.get_path_output(
                 grouprel, using_val.path_id, aspect='value', env=ctx.env)
             pathctx._put_path_output_var(
-                grouprel, using_val.path_id, 'serialized', uref, env=ctx.env)
+                grouprel, using_val.path_id, 'serialized', uout, env=ctx.env)
 
         grouprel.group_clause = [
             compile_grouping_el(el, stmt, ctx=groupctx) for el in stmt.by

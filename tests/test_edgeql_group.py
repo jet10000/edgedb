@@ -659,3 +659,36 @@ class TestEdgeQLGroup(tb.QueryTestCase):
             await self.con.execute('''
                 group cards::Card{name} by .id
             ''')
+
+    async def test_edgeql_group_tuple_01(self):
+        await self.con.execute('''
+            create type tup {
+                create multi property tup -> tuple<int64, int64> ;
+            };
+            insert tup { tup := {(1, 1), (1, 2), (1, 1), (2, 1)} };
+        ''')
+
+        await self.assert_query_result(
+            '''
+                with X := tup.tup,
+                group X using z := X by z;
+            ''',
+            tb.bag([
+                {"elements": [[1, 2]], "key": {"z": [1, 2]}},
+                {"elements": [[2, 1]], "key": {"z": [2, 1]}},
+                {"elements": tb.bag([[1, 1], [1, 1]]), "key": {"z": [1, 1]}}
+            ])
+        )
+
+    async def test_edgeql_group_tuple_02(self):
+        await self.assert_query_result(
+            '''
+                with X := {(1, 1), (1, 2), (1, 1), (2, 1)},
+                group X using z := X by z;
+            ''',
+            tb.bag([
+                {"elements": [[1, 2]], "key": {"z": [1, 2]}},
+                {"elements": [[2, 1]], "key": {"z": [2, 1]}},
+                {"elements": tb.bag([[1, 1], [1, 1]]), "key": {"z": [1, 1]}}
+            ])
+        )
