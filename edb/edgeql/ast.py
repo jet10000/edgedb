@@ -565,6 +565,7 @@ class InternalGroupQuery(
         GroupQuery, ReturningMixin, FilterMixin, OrderByMixin):
     group_alias: str
     grouping_alias: typing.Optional[str]
+    from_desugaring: bool = False
 
 
 class InsertQuery(Query, SubjectMixin):

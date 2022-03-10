@@ -282,6 +282,14 @@ def _make_group_binding(
 def compile_InternalGroupQuery(
     expr: qlast.InternalGroupQuery, *, ctx: context.ContextLevel
 ) -> irast.Set:
+    if not expr.from_desugaring and not ctx.env.schema.get(
+        'cfg::TestSessionConfig', None
+    ):
+        raise errors.UnsupportedFeatureError(
+            'FOR GROUP is an internal testing feature',
+            context=expr.context,
+        )
+
     # expr.dump_edgeql()
 
     with ctx.subquery() as sctx:

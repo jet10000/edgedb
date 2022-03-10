@@ -156,6 +156,7 @@ def desugar_group(
         group_alias=g_alias,
         grouping_alias=grouping_alias,
         result=output_shape,
+        from_desugaring=True,
     )
 
 
