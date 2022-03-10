@@ -37,7 +37,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_simple_01(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP User
+                FOR GROUP User
                 USING _ := User.name
                 BY _
                 INTO User
@@ -49,7 +49,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_simple_02(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue := Issue
+                FOR GROUP Issue := Issue
                 # time_estimate is {} on some Issues,
                 # but that's a valid grouping
                 USING _ := Issue.time_estimate
@@ -64,7 +64,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_simple_03(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING _ := Issue.time_estimate
                 BY _
                 INTO Issue
@@ -77,7 +77,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_simple_04(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING _ := Issue.time_estimate
                 BY _
                 INTO Issue
@@ -91,7 +91,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_simple_05(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING _ := Issue.time_estimate
                 BY _
                 INTO Issue
@@ -105,7 +105,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_simple_06(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING _ := Issue.time_estimate
                 BY _
                 INTO Issue
@@ -120,7 +120,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r'''
                 WITH MODULE cards
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING _ := .cost//2
                 BY _
                 INTO Card
@@ -133,7 +133,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r'''
             WITH MODULE cards
-            DETACHED GROUP Card
+            FOR GROUP Card
             USING _ := .cost//2
             BY _
             INTO Card
@@ -147,7 +147,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r'''
             WITH MODULE cards
-            DETACHED GROUP Card { name }
+            FOR GROUP Card { name }
             USING element := .element
             BY element
             INTO g
@@ -171,7 +171,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r'''
             WITH MODULE cards
-            DETACHED GROUP Card
+            FOR GROUP Card
             USING element := .element
             BY element
             INTO g
@@ -191,7 +191,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r'''
             WITH MODULE cards
-            DETACHED GROUP Card
+            FOR GROUP Card
             USING element := .element
             BY element
             INTO g
@@ -209,7 +209,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_by_01(self):
         await self.assert_query_result(
             r"""
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING B :=  Issue.status.name
                 BY B
                 INTO Issue
@@ -234,7 +234,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_by_02(self):
         await self.assert_query_result(
             r"""
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING B :=  Issue.status.name
                 BY B
                 INTO Issue
@@ -254,7 +254,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_result_alias_01(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING _ :=  Issue.time_estimate
                 BY _
                 INTO Issue
@@ -268,7 +268,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
 
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING _ :=  Issue.time_estimate
                 BY _
                 INTO Issue
@@ -283,7 +283,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_result_alias_02(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING _ :=  Issue.time_estimate
                 BY _
                 INTO Issue
@@ -307,7 +307,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                         issues := array_agg(
                             (
                                 SELECT
-                                (DETACHED GROUP
+                                (FOR GROUP
                                    UserIssue := User.<owner[IS Issue]
                                 USING B :=  UserIssue.status.name
                                 BY B
@@ -349,7 +349,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_returning_01(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING _ :=  Issue.time_estimate
                 BY _
                 INTO Issue
@@ -364,7 +364,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_returning_02(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING B := Issue.time_estimate
                 BY B
                 INTO Issue
@@ -381,7 +381,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r'''
                 SELECT (
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING B := Issue.status
                 BY B
                 INTO Issue
@@ -410,7 +410,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_returning_04(self):
         await self.assert_query_result(
             r'''
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING _ := Issue.status
                 BY _
                 INTO Issue
@@ -446,7 +446,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 # a trivial group that is actually not doing anything
                 # different from a plain SELECT
                 WITH MODULE cards
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING _ :=  Card.element
                 BY _
                 INTO Card
@@ -472,7 +472,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 # a trivial group that is actually not doing anything
                 # different from a plain SELECT
                 WITH MODULE cards
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING _ :=  Card.element
                 BY _
                 INTO Card
@@ -500,7 +500,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 # different from a plain SELECT
                 WITH MODULE cards
                 SELECT (
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING _ :=  Card.element
                 BY _
                 INTO Card
@@ -535,7 +535,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                     C2 := Card,
                     ELEMENTAL := (
                         # group cards into arrays by element
-                        DETACHED GROUP Card
+                        FOR GROUP Card
                         USING _ :=  Card.element
                         BY _
                         INTO Card
@@ -627,7 +627,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 WITH
                     MODULE cards,
                     ELEMENTAL := (
-                        DETACHED GROUP Card
+                        FOR GROUP Card
                         USING _ :=  Card.element
                         BY _
                         INTO Card
@@ -708,11 +708,11 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 # Nominate a leader in each group from among the group.
                 #
                 # Same as previous tests, but refactored to take full
-                # advantage of DETACHED GROUP semantics and BY aliasing.
+                # advantage of FOR GROUP semantics and BY aliasing.
                 WITH
                     MODULE cards,
                     C2 := Card
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING Element :=
                         # partition cards by element
                         Card.element
@@ -788,7 +788,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_by_tuple_01(self):
         await self.assert_query_result(
             r"""
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING B := (Issue.status.name, Issue.time_estimate)
                 # This tuple will be {} for Issues lacking
                 # time_estimate. So effectively we're expecting only 2
@@ -818,7 +818,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_by_multiple_01(self):
         await self.assert_query_result(
             r"""
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING
                     Stat := Issue.status.name,
                     Est := Issue.time_estimate
@@ -854,7 +854,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
     async def test_edgeql_igroup_by_multiple_02(self):
         await self.assert_query_result(
             r"""
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING
                     Stat := Issue.status.name,
                     Est := Issue.time_estimate
@@ -884,7 +884,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 SELECT (
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING
                     Stat := Issue.status.name,
                     Est := Issue.time_estimate
@@ -923,7 +923,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 SELECT (
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING
                     Stat := Issue.status.name,
                     Est := Issue.time_estimate
@@ -967,8 +967,8 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 SELECT (
-                DETACHED GROUP
-                    # define a computable in the DETACHED GROUP expr
+                FOR GROUP
+                    # define a computable in the FOR GROUP expr
                     Issue := Issue {
                         less_than_four := <int64>Issue.number < 4
                     }
@@ -1012,7 +1012,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 SELECT (
-                DETACHED GROUP Issue
+                FOR GROUP Issue
                 USING
                     Stat := Issue.status.name,
                     # group by some non-trivial expression
@@ -1056,7 +1056,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
             r"""
                 WITH MODULE cards
                 SELECT (
-                DETACHED GROUP C := Card
+                FOR GROUP C := Card
                 USING x := C.cost
                 BY x
                 INTO C
@@ -1084,7 +1084,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING x := .cost
                 BY x
                 INTO C
@@ -1113,7 +1113,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 # group by link property
                 WITH MODULE cards
                 SELECT _ := (
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING B := Card.<deck[IS User]@count
                 BY B
                 INTO Card
@@ -1152,7 +1152,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 # use link property inside a group aggregate
                 WITH MODULE cards
                 SELECT _ := (
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING El :=
                         Card.element
                 BY El
@@ -1195,7 +1195,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 # group by link property
                 WITH MODULE cards
                 SELECT _ := (
-                DETACHED GROUP User
+                FOR GROUP User
                 # get the nickname that this user from Alice (if any)
                 USING B := (
                     SELECT User.<friends[IS User]@nickname
@@ -1239,7 +1239,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                             }
                         # grouping the cards now
                         SELECT _ := (
-                        DETACHED GROUP U.deck
+                        FOR GROUP U.deck
                         USING B :=  U.deck.element
                         BY B
                         INTO D
@@ -1304,7 +1304,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                         } FILTER User.name = 'Dave'
                     )
                 SELECT (
-                DETACHED GROUP
+                FOR GROUP
                     U.deck
                 USING
                     El := U.deck.element,
@@ -1353,7 +1353,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 WITH
                     I := <int64>Issue.number
                 SELECT _r := (
-                DETACHED GROUP I
+                FOR GROUP I
                 USING _ :=  I % 2 = 0
                 BY _
                 INTO I
@@ -1373,7 +1373,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
                 WITH
                     I := <int64>Issue.number
                 SELECT _r := (
-                DETACHED GROUP I
+                FOR GROUP I
                 USING _ :=  I % 2 = 0
                 BY _
                 INTO I
@@ -1391,7 +1391,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                DETACHED GROUP Card { name }
+                FOR GROUP Card { name }
                 USING e := .element,
                 BY e
                 INTO g UNION { z := g };
@@ -1414,7 +1414,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                SELECT (DETACHED GROUP Card { name }
+                SELECT (FOR GROUP Card { name }
                 USING e := .element,
                 BY e
                 INTO g UNION { z := g });
@@ -1437,7 +1437,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                DETACHED GROUP Card { name }
+                FOR GROUP Card { name }
                 USING e := .element,
                 BY e
                 INTO g UNION { n := count(g) };
@@ -1451,7 +1451,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                SELECT (DETACHED GROUP Card { name }
+                SELECT (FOR GROUP Card { name }
                 USING e := .element,
                 BY e
                 INTO g UNION { n := count(g) });
@@ -1463,7 +1463,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING e := .element
                 BY e
                 INTO g
@@ -1477,7 +1477,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING e := .element
                 BY e
                 INTO g
@@ -1494,7 +1494,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING e := .element
                 BY e
                 INTO g
@@ -1511,7 +1511,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                SELECT (DETACHED GROUP Card { name }
+                SELECT (FOR GROUP Card { name }
                 USING e := .element,
                 BY e
                 INTO g UNION (
@@ -1535,7 +1535,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                SELECT (DETACHED GROUP Card { name }
+                SELECT (FOR GROUP Card { name }
                 USING e := .element,
                 BY e
                 INTO g UNION (
@@ -1559,7 +1559,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING e := .element
                 BY e
                 INTO g
@@ -1581,7 +1581,7 @@ class TestEdgeQLGroupInternal(tb.QueryTestCase):
         await self.assert_query_result(
             r"""
                 WITH MODULE cards
-                DETACHED GROUP Card
+                FOR GROUP Card
                 USING e := .element
                 BY e
                 INTO g

@@ -297,7 +297,7 @@ def compile_InternalGroupQuery(
             # N.B: Subject is exposed because we want any shape on the
             # subject to be exposed on bare references to the group
             # alias.  This is frankly pretty dodgy behavior for
-            # DETACHED GROUP to have but the real GROUP needs to
+            # FOR GROUP to have but the real GROUP needs to
             # maintain shapes, and this is the easiest way to handle
             # that.
             stmt.subject = compile_result_clause(

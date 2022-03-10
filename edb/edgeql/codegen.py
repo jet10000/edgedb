@@ -364,7 +364,7 @@ class EdgeQLSourceGenerator(codegen.SourceGenerator):
         self._visit_aliases(node)
 
         if isinstance(node, qlast.InternalGroupQuery):
-            self._write_keywords('DETACHED ')
+            self._write_keywords('FOR ')
         self._write_keywords('GROUP')
         self._block_ws(1)
         if node.subject_alias:

@@ -175,7 +175,7 @@ def try_group_rewrite(
         [filter-clause] [order-clause] [other clauses]
         =>
         SELECT (
-          DETACHED GROUP ...
+          FOR GROUP ...
           UNION <igroup-body> <shape>
           [filter-clause]
           [order-clause]
@@ -186,7 +186,7 @@ def try_group_rewrite(
 
         FOR g in (GROUP ...) UNION <body>
         =>
-        DETACHED GROUP ...
+        FOR GROUP ...
         UNION (
             FOR g IN (<group-body>)
             UNION <body>
@@ -205,7 +205,7 @@ def try_group_rewrite(
         igroup = igroup.replace(result=qlast.Shape(
             expr=igroup.result, elements=node.result.elements))
 
-        # FILTER gets sunk into the body of the DETACHED GROUP
+        # FILTER gets sunk into the body of the FOR GROUP
         if node.where or node.orderby:
             igroup = igroup.replace(
                 # We need to move the result_alias in case

@@ -235,7 +235,7 @@ class OptGroupingAlias(Nonterm):
 
 class InternalGroup(Nonterm):
     def reduce_InternalGroup(self, *kids):
-        r"%reduce DETACHED GROUP OptionallyAliasedExpr \
+        r"%reduce FOR GROUP OptionallyAliasedExpr \
                   UsingClause \
                   ByClause \
                   INTO Identifier OptGroupingAlias \
