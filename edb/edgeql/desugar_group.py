@@ -60,8 +60,9 @@ def collect_grouping_atoms(
             for at in el.elements:
                 _collect_atom(at)
 
-        assert isinstance(el, qlast.ObjectRef)
-        atoms.add(el.name)
+        else:
+            assert isinstance(el, qlast.ObjectRef)
+            atoms.add(el.name)
 
     def _collect_el(el: qlast.GroupingElement) -> None:
         if isinstance(el, qlast.GroupingSets):
